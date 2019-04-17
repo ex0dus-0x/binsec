@@ -7,3 +7,4 @@ edition = "2018"
 [dependencies]
 goblin = "0.0.22"
 clap = "2.33.0"
+term-table = "1.1.0"
