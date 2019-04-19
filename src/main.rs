@@ -21,6 +21,7 @@ use goblin::elf64 as elf;
 use goblin::elf32 as elf;
 
 use goblin::elf::{program_header, ProgramHeader};
+use goblin::elf::dynamic::{tag_to_str, Dyn};
 use goblin::Object;
 
 
@@ -60,8 +61,8 @@ fn main() {
 
     // header row
     table.add_row(Row::new(vec![
-        TableCell::new_with_alignment("Security Features", 2, Alignment::Center)
-    ])); 
+        TableCell::new_with_alignment("KERNEL SECURITY FEATURES", 2, Alignment::Center)
+    ]));
 
     // check for RELRO
     let relro_headers: Vec<ProgramHeader> = elf.program_headers
@@ -69,33 +70,69 @@ fn main() {
         .filter(|ph| program_header::pt_to_str(ph.p_type) == "PT_GNU_RELRO")
         .cloned()
         .collect();
+    let mut relro_row = vec![TableCell::new("RELRO")];
 
-    table.add_row(Row::new(vec![
-        TableCell::new("RELRO"),
-        TableCell::new_with_alignment("This is right aligned text", 1, Alignment::Right)
-    ]));
+    // RELRO is enabled
+    if (relro_headers.len() >= 1) && (relro_headers[0].p_flags == 4) {
+
+        // check for full/partial RELRO support
+        if let Some(segs) = elf.dynamic {
+            let dyn_segs: Vec<Dyn> = segs.dyns
+                .iter()
+                .filter(|tag| tag_to_str(tag.d_tag) == "DT_BIND_NOW")
+                .cloned()
+                .collect();
+ 
+            if dyn_segs.len() == 0 {
+                relro_row.push(TableCell::new_with_alignment("Partial RELRO enabled", 1, Alignment::Right));
+            } else {
+                relro_row.push(TableCell::new_with_alignment("Full RELRO enabled", 1, Alignment::Right));
+            }
+        }
+    }
+    // RELRO is not enabled
+    else { 
+        relro_row.push(TableCell::new_with_alignment("No RELRO enabled", 1, Alignment::Right));
+    }
+    table.add_row(Row::new(relro_row));
 
 
     // check for non-executable stack
-    let nx_headers: Vec<ProgramHeader> = elf.program_headers
+    let stack_headers: Vec<ProgramHeader> = elf.program_headers
         .iter()
         .filter(|ph| program_header::pt_to_str(ph.p_type) == "PT_GNU_STACK")
         .cloned()
         .collect();
+    let mut nx_row = vec![TableCell::new("NX bit")];
 
-    table.add_row(Row::new(vec![
-        TableCell::new("NX"),
-        TableCell::new_with_alignment("This is right aligned text", 1, Alignment::Right)
-    ]));
+    // NX bit is set when GNU_STACK is read/write only (RW)
+    if (stack_headers.len() >= 1) && (stack_headers[0].p_flags == 6) {
+        nx_row.push(TableCell::new_with_alignment("Enabled", 1, Alignment::Right));
+    } else {
+        nx_row.push(TableCell::new_with_alignment("Not Enabled", 1, Alignment::Right));
+    }
+    table.add_row(Row::new(nx_row));
 
 
     // check for stack canary
     let strtab = elf.strtab.to_vec().unwrap();
-    for sym in strtab.iter() {
-        if sym == &"__stack_chk_fail" {
-            println!("stack canary enabled");
-        }
+    let str_sym: Vec<&str> = strtab
+        .iter()
+        .filter(|sym| *sym == &"__stack_chk_fail") // TODO: regex?
+        .cloned()
+        .collect();
+    let mut sc_row = vec![TableCell::new("Stack Canary")];
+   
+    // stack canary not enabled
+    if str_sym.len() == 0 { 
+        sc_row.push(TableCell::new_with_alignment("Not Enabled", 1, Alignment::Right));
     }
+    // stack canary enabled
+    else {
+        sc_row.push(TableCell::new_with_alignment("Enabled", 1, Alignment::Right));
+    }
+    table.add_row(Row::new(sc_row));
 
+    // render and output table
     println!("{}", table.render());
 }
