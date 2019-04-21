@@ -1,6 +1,7 @@
 extern crate clap;
 extern crate term_table;
 extern crate goblin;
+extern crate protobuf;
 
 use std::path::Path;
 use std::fs::File;
@@ -20,33 +21,57 @@ use goblin::elf64 as elf;
 #[cfg(target_pointer_width = "32")]
 use goblin::elf32 as elf;
 
-use goblin::elf::{program_header, ProgramHeader};
+use goblin::elf::{header, program_header, ProgramHeader};
 use goblin::elf::dynamic::{tag_to_str, Dyn};
 use goblin::Object;
 
 
 fn main() {
-
-    // TODO: emit json or protobuf
-    // TODO: additional info
     let matches = App::new("binsec")
         .version("1.0")
         .author("Alan")
         .about("security features checker for ELF binaries")
+        
+        // general config flags
         .arg(Arg::with_name("BINARY")
              .help("sets binary to analyze")
              .required(true)
              .index(1))
+        .arg(Arg::with_name("info")
+             .help("outputs other binary info")
+             .short("i")
+             .long("info")
+             .required(false)
+             .takes_value(false))
+
+        // TODO: deserialization options 
+        .arg(Arg::with_name("out_format")
+             .help("sets serialization format for output")
+             .short("f")
+             .long("format")
+             .value_name("FORMAT")
+             .required(false)
+             .takes_value(true)
+             .possible_values(&["json", "protobuf"]))
+        .arg(Arg::with_name("out_file")
+             .help("sets name of file that saves stdout")
+             .short("o")
+             .long("output")
+             .value_name("NAME")
+             .required(false)
+             .takes_value(true))
+
         .get_matches();
 
-    // parse binary (only if ELF32/64)
+    
+    // retrieve binary arg
     let binary = matches.value_of("BINARY").unwrap();
 
     // initialize path and file
     let path = Path::new(binary);
     let mut fd = File::open(path).unwrap();
 
-    // read file to buffer and parse
+    // read file to buffer and parse (continue only if ELF32/64)
     let mut buffer = Vec::new();
     fd.read_to_end(&mut buffer).unwrap();
     let elf = match Object::parse(&buffer).unwrap() {
@@ -54,9 +79,62 @@ fn main() {
         _                   => { panic!("unsupported binary format"); }
     };
 
+    
+    // output basic binary info if set
+    if matches.is_present("info") {
+       
+        // initialize blank style term table
+        let mut basic_table = Table::new();
+        basic_table.max_column_width = 60;
+        basic_table.style = TableStyle::blank();
+
+        // main header
+        basic_table.add_row(Row::new(vec![
+            TableCell::new_with_alignment("BASIC BINARY INFORMATION", 2, Alignment::Center)
+        ]));
+
+        // name
+        basic_table.add_row(Row::new(vec![
+            TableCell::new("Binary Name:"),
+            TableCell::new_with_alignment(binary, 1, Alignment::Right)
+        ]));
+        
+        // machine type
+        basic_table.add_row(Row::new(vec![
+            TableCell::new("Machine:"),
+            TableCell::new_with_alignment(header::machine_to_str(elf.header.e_machine), 1, Alignment::Right)
+        ]));
+
+        // file class
+        let file_class: &str = match elf.header.e_ident[4] {
+            1 => "ELF32",
+            2 => "ELF64",
+            _ => "unknown"
+        };
+        basic_table.add_row(Row::new(vec![
+            TableCell::new("Class:"),
+            TableCell::new_with_alignment(file_class, 1, Alignment::Right)
+        ]));
+
+        // binary type
+        basic_table.add_row(Row::new(vec![
+            TableCell::new("Binary Type:"),
+            TableCell::new_with_alignment(&header::et_to_str(elf.header.e_type), 1, Alignment::Right)
+        ]));
+
+        // program entry point
+        basic_table.add_row(Row::new(vec![
+            TableCell::new("Entry Point:"),
+            TableCell::new_with_alignment(&format_args!("0x{:x}", elf.header.e_entry), 1, Alignment::Right)
+        ]));
+
+        // render table
+        println!("{}", basic_table.render());
+    }
+
     // initialize ASCII terminal table
     let mut table = Table::new();
-    table.max_column_width = 40;
+    table.max_column_width = 60;
     table.style = TableStyle::extended();
 
     // header row
@@ -133,6 +211,30 @@ fn main() {
     }
     table.add_row(Row::new(sc_row));
 
+    
+    // check if position-independent executable
+    let e_type = elf.header.e_type;
+    let mut pie_row = vec![TableCell::new("PIE")];
+    match e_type {
+        
+        // ET_EXEC
+        2 => {
+            pie_row.push(TableCell::new_with_alignment("PIE disabled (executable)", 1, Alignment::Right));
+        }
+
+        // ET_DYN
+        3 => {
+            // TODO: check if shared object
+            pie_row.push(TableCell::new_with_alignment("PIE enabled (PIE executable)", 1, Alignment::Right));
+        },
+        
+        // ET_*
+        _                  => {
+            pie_row.push(TableCell::new_with_alignment("Unknown (unknown filetype)", 1, Alignment::Right));
+        }
+    }
+    table.add_row(Row::new(pie_row));
+    
     // render and output table
     println!("{}", table.render());
 }

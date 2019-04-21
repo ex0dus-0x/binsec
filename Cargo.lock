@@ -30,6 +30,7 @@ version = "0.1.0"
 dependencies = [
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "goblin 0.0.22 (registry+https://github.com/rust-lang/crates.io-index)",
+ "protobuf 2.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "term-table 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -102,6 +103,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "unicode-xid 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "protobuf"
+version = "2.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "quote"
@@ -298,6 +304,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum memchr 2.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "2efc7bc57c883d4a4d6e3246905283d8dae951bb3bd32f49d6ef297f546e1c39"
 "checksum plain 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 "checksum proc-macro2 0.4.27 (registry+https://github.com/rust-lang/crates.io-index)" = "4d317f9caece796be1980837fd5cb3dfec5613ebdb04ad0956deea83ce168915"
+"checksum protobuf 2.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "bc7badf647ae2fa27ba51c218e347386c88cc604fcfe71f2aba0ad017f3f2b75"
 "checksum quote 0.6.12 (registry+https://github.com/rust-lang/crates.io-index)" = "faf4799c5d274f3868a4aae320a0a182cbd2baee377b378f080e16a23e9d80db"
 "checksum redox_syscall 0.1.54 (registry+https://github.com/rust-lang/crates.io-index)" = "12229c14a0f65c4f1cb046a3b52047cdd9da1f4b30f8a39c5063c8bae515e252"
 "checksum redox_termios 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "7e891cfe48e9100a70a3b6eb652fef28920c117d366339687bd5576160db0f76"
