@@ -8,14 +8,9 @@ __binsec__ is a utility that statically checks ELF binaries for Linux kernel sec
 
 ## features
 
-* __Checks for__: RELRO, NX, stack canary 
+* __Checks for__: RELRO, NX, PIE, stack canary 
 * __Fast__: libgoblin is used as backend for low-level ELF parsing
-
-### todo
-
-* PIE, SELinux, runpath
-* other ELF debugging information
-* `gcc` flag recommendations
+* __Intuitive__: (TODO) provides `gcc` flag recommendations
 
 ## usage
 
@@ -30,6 +25,14 @@ To check for security features:
 ```
 $ binsec ./my_binary
 ```
+
+With more info:
+
+```
+$ binsec --info ./my_binary
+```
+
+Note that you do not need to supply any arguments/flags to `./my_binary`, as __binsec__ is a _statically_-based detection tool.
 
 ## license
 
