@@ -6,6 +6,7 @@ extern crate protobuf;
 use std::path::Path;
 use std::fs::File;
 use std::io::prelude::*;
+use std::iter::Iterator;
 
 use clap::{Arg, App};
 
@@ -26,44 +27,62 @@ use goblin::elf::dynamic::{tag_to_str, Dyn};
 use goblin::Object;
 
 
+/// parses an element within an ELF header / table / section based on a given predicate. Also
+/// applies a user input function to elements of a vector before parsing out the element
+fn parse_elem<'a, I: PartialEq<str> + Clone>(vec: Vec<I>, apply: &Fn(I) -> &'a str, predicate: &'a str) -> Option<&'a str> {
+    let mut consumed_vec = vec![];
+    consumed_vec = vec
+        .iter()
+        .map(|num| apply(num.clone()))
+        .filter(|elem| *elem == predicate) // TODO: struct field support
+        .collect();
+
+    // if no elem was found
+    if consumed_vec.len() == 0 {
+        return None;
+    }
+    Some(consumed_vec[0].clone())
+}
+
+
 fn main() {
     let matches = App::new("binsec")
         .version("1.0")
         .author("Alan")
         .about("security features checker for ELF binaries")
-        
+
         // general config flags
         .arg(Arg::with_name("BINARY")
              .help("sets binary to analyze")
-             .required(true)
-             .index(1))
+             .index(1)
+             .required(false))
         .arg(Arg::with_name("info")
              .help("outputs other binary info")
              .short("i")
              .long("info")
-             .required(false)
-             .takes_value(false))
+             .takes_value(false)
+             .required(false))
 
-        // TODO: deserialization options 
+        // TODO: deserialization options
         .arg(Arg::with_name("out_format")
              .help("sets serialization format for output")
              .short("f")
              .long("format")
-             .value_name("FORMAT")
-             .required(false)
              .takes_value(true)
-             .possible_values(&["json", "protobuf"]))
+             .value_name("FORMAT")
+             .possible_values(&["raw", "json", "protobuf"])
+             .required(false))
         .arg(Arg::with_name("out_file")
              .help("sets name of file that saves stdout")
              .short("o")
              .long("output")
+             .takes_value(true)
              .value_name("NAME")
-             .required(false)
-             .takes_value(true))
-
+             .default_value("bin.out")
+             .required(false))
         .get_matches();
 
-    
+
     // retrieve binary arg
     let binary = matches.value_of("BINARY").unwrap();
 
@@ -79,10 +98,12 @@ fn main() {
         _                   => { panic!("unsupported binary format"); }
     };
 
-    
+    // TODO: create de/serializable structure, save info
+    // TODO: conditional to write to structured data and quit
+
     // output basic binary info if set
     if matches.is_present("info") {
-       
+
         // initialize blank style term table
         let mut basic_table = Table::new();
         basic_table.max_column_width = 60;
@@ -98,7 +119,7 @@ fn main() {
             TableCell::new("Binary Name:"),
             TableCell::new_with_alignment(binary, 1, Alignment::Right)
         ]));
-        
+
         // machine type
         basic_table.add_row(Row::new(vec![
             TableCell::new("Machine:"),
@@ -142,6 +163,7 @@ fn main() {
         TableCell::new_with_alignment("KERNEL SECURITY FEATURES", 2, Alignment::Center)
     ]));
 
+
     // check for RELRO
     let relro_headers: Vec<ProgramHeader> = elf.program_headers
         .iter()
@@ -160,7 +182,7 @@ fn main() {
                 .filter(|tag| tag_to_str(tag.d_tag) == "DT_BIND_NOW")
                 .cloned()
                 .collect();
- 
+
             if dyn_segs.len() == 0 {
                 relro_row.push(TableCell::new_with_alignment("Partial RELRO enabled", 1, Alignment::Right));
             } else {
@@ -169,7 +191,7 @@ fn main() {
         }
     }
     // RELRO is not enabled
-    else { 
+    else {
         relro_row.push(TableCell::new_with_alignment("No RELRO enabled", 1, Alignment::Right));
     }
     table.add_row(Row::new(relro_row));
@@ -200,9 +222,9 @@ fn main() {
         .cloned()
         .collect();
     let mut sc_row = vec![TableCell::new("Stack Canary")];
-   
+
     // stack canary not enabled
-    if str_sym.len() == 0 { 
+    if str_sym.len() == 0 {
         sc_row.push(TableCell::new_with_alignment("Not Enabled", 1, Alignment::Right));
     }
     // stack canary enabled
@@ -211,12 +233,12 @@ fn main() {
     }
     table.add_row(Row::new(sc_row));
 
-    
+
     // check if position-independent executable
     let e_type = elf.header.e_type;
     let mut pie_row = vec![TableCell::new("PIE")];
     match e_type {
-        
+
         // ET_EXEC
         2 => {
             pie_row.push(TableCell::new_with_alignment("PIE disabled (executable)", 1, Alignment::Right));
@@ -227,14 +249,16 @@ fn main() {
             // TODO: check if shared object
             pie_row.push(TableCell::new_with_alignment("PIE enabled (PIE executable)", 1, Alignment::Right));
         },
-        
+
         // ET_*
         _                  => {
             pie_row.push(TableCell::new_with_alignment("Unknown (unknown filetype)", 1, Alignment::Right));
         }
     }
     table.add_row(Row::new(pie_row));
-    
+
+    // TODO: SELinux, fortify-source, runpath
+
     // render and output table
     println!("{}", table.render());
 }
