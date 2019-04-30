@@ -26,22 +26,14 @@ use goblin::elf::{header, program_header, ProgramHeader};
 use goblin::elf::dynamic::{tag_to_str, Dyn};
 use goblin::Object;
 
-
+/// TODO(alan): parse with struct type attributes
 /// parses an element within an ELF header / table / section based on a given predicate. Also
 /// applies a user input function to elements of a vector before parsing out the element
+#[allow(dead_code)]
 fn parse_elem<'a, I: PartialEq<str> + Clone>(vec: Vec<I>, apply: &Fn(I) -> &'a str, predicate: &'a str) -> Option<&'a str> {
-    let mut consumed_vec = vec![];
-    consumed_vec = vec
-        .iter()
-        .map(|num| apply(num.clone()))
-        .filter(|elem| *elem == predicate) // TODO: struct field support
-        .collect();
-
-    // if no elem was found
-    if consumed_vec.len() == 0 {
-        return None;
-    }
-    Some(consumed_vec[0].clone())
+    vec.iter()
+       .map(|num| apply(num.clone()))
+       .find(|elem| *elem == predicate)
 }
 
 
@@ -164,71 +156,66 @@ fn main() {
     ]));
 
 
-    // check for RELRO
-    let relro_headers: Vec<ProgramHeader> = elf.program_headers
-        .iter()
-        .filter(|ph| program_header::pt_to_str(ph.p_type) == "PT_GNU_RELRO")
-        .cloned()
-        .collect();
-    let mut relro_row = vec![TableCell::new("RELRO")];
-
-    // RELRO is enabled
-    if (relro_headers.len() >= 1) && (relro_headers[0].p_flags == 4) {
-
-        // check for full/partial RELRO support
-        if let Some(segs) = elf.dynamic {
-            let dyn_segs: Vec<Dyn> = segs.dyns
-                .iter()
-                .filter(|tag| tag_to_str(tag.d_tag) == "DT_BIND_NOW")
-                .cloned()
-                .collect();
-
-            if dyn_segs.len() == 0 {
-                relro_row.push(TableCell::new_with_alignment("Partial RELRO enabled", 1, Alignment::Right));
-            } else {
-                relro_row.push(TableCell::new_with_alignment("Full RELRO enabled", 1, Alignment::Right));
-            }
-        }
-    }
-    // RELRO is not enabled
-    else {
-        relro_row.push(TableCell::new_with_alignment("No RELRO enabled", 1, Alignment::Right));
-    }
-    table.add_row(Row::new(relro_row));
-
-
     // check for non-executable stack
-    let stack_headers: Vec<ProgramHeader> = elf.program_headers
+    // NX bit is set when GNU_STACK is read/write only (RW)
+    let stack_header: Option<ProgramHeader> = elf.program_headers
         .iter()
-        .filter(|ph| program_header::pt_to_str(ph.p_type) == "PT_GNU_STACK")
-        .cloned()
-        .collect();
+        .find(|ph| program_header::pt_to_str(ph.p_type) == "PT_GNU_STACK")
+        .cloned();
     let mut nx_row = vec![TableCell::new("NX bit")];
 
-    // NX bit is set when GNU_STACK is read/write only (RW)
-    if (stack_headers.len() >= 1) && (stack_headers[0].p_flags == 6) {
-        nx_row.push(TableCell::new_with_alignment("Enabled", 1, Alignment::Right));
+    if let Some(sh) = stack_header {
+        if sh.p_flags == 6 {
+            nx_row.push(TableCell::new_with_alignment("Enabled", 1, Alignment::Right));
+        }
     } else {
         nx_row.push(TableCell::new_with_alignment("Not Enabled", 1, Alignment::Right));
     }
     table.add_row(Row::new(nx_row));
 
 
+
+    // check for RELRO
+    let relro_header: Option<ProgramHeader> = elf.program_headers
+        .iter()
+        .find(|ph| program_header::pt_to_str(ph.p_type) == "PT_GNU_RELRO")
+        .cloned();
+    let mut relro_row = vec![TableCell::new("RELRO")];
+
+    if let Some(rh) = relro_header {
+        if rh.p_flags == 4 {
+
+            // check for full/partial RELRO support
+            if let Some(segs) = elf.dynamic {
+                let dyn_seg: Option<Dyn> = segs.dyns
+                    .iter()
+                    .find(|tag| tag_to_str(tag.d_tag) == "DT_BIND_NOW")
+                    .cloned();
+
+                if let None = dyn_seg {
+                    relro_row.push(TableCell::new_with_alignment("Partial RELRO enabled", 1, Alignment::Right));
+                } else {
+                    relro_row.push(TableCell::new_with_alignment("Full RELRO enabled", 1, Alignment::Right));
+                }
+            }
+        }
+    } else {
+        relro_row.push(TableCell::new_with_alignment("No RELRO enabled", 1, Alignment::Right));
+    }
+    table.add_row(Row::new(relro_row));
+
+
     // check for stack canary
     let strtab = elf.strtab.to_vec().unwrap();
-    let str_sym: Vec<&str> = strtab
+    let str_sym: Option<_> = strtab
         .iter()
-        .filter(|sym| *sym == &"__stack_chk_fail") // TODO: regex?
-        .cloned()
-        .collect();
+        .find(|sym| *sym == &"__stack_chk_fail") // TODO: regex?
+        .cloned();
     let mut sc_row = vec![TableCell::new("Stack Canary")];
 
-    // stack canary not enabled
-    if str_sym.len() == 0 {
+    if let None = str_sym {
         sc_row.push(TableCell::new_with_alignment("Not Enabled", 1, Alignment::Right));
-    }
-    // stack canary enabled
-    else {
+    } else {
         sc_row.push(TableCell::new_with_alignment("Enabled", 1, Alignment::Right));
     }
     table.add_row(Row::new(sc_row));
