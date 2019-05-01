@@ -242,7 +242,7 @@ fn main () {
     let strtab = elf.strtab.to_vec().unwrap();
     let str_sym: Option<_> = strtab
         .iter()
-        .find(|sym| *sym == &"__stack_chk_fail") // TODO: regex?
+        .find(|sym| sym.contains("__stack_chk_fail"))
         .cloned();
     let mut sc_row = vec![TableCell::new("Stack Canary")];
 
@@ -291,7 +291,6 @@ fn main () {
         },
         Some("raw") | Some(&_) | None   => {
             println!("{}", table.render());
-        },
-
+        }
     }
 }
