@@ -5,7 +5,11 @@ authors = ["ex0dus-0x <ex0dus@codemuch.tech>"]
 edition = "2018"
 
 [dependencies]
-goblin = "0.0.22"
+
 clap = "2.33.0"
 term-table = "1.1.0"
-protobuf = "2.*.*"
+
+goblin = "0.0.22"
+
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

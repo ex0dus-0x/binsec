@@ -1,7 +1,12 @@
+//!
+//! main.rs
+//!
+//!     main cli entry point to binsec
+//!
 extern crate clap;
 extern crate term_table;
 extern crate goblin;
-extern crate protobuf;
+extern crate serde;
 
 use std::path::Path;
 use std::fs::File;
@@ -26,6 +31,37 @@ use goblin::elf::{header, program_header, ProgramHeader};
 use goblin::elf::dynamic::{tag_to_str, Dyn};
 use goblin::Object;
 
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize)]
+enum Relro {
+    FullRelro,
+    PartialRelro,
+    NoRelro
+}
+
+/// struct that derives serde_json::Deserialize in order to properly
+/// output JSON to stdout or file descriptor
+#[derive(Serialize, Deserialize)]
+struct Binsec {
+    exec_stack:     bool,
+    stack_canary:   bool,
+    pie:            bool,
+    relro:          Relro,
+}
+
+impl Default for Binsec {
+    fn default () -> Binsec {
+        Binsec {
+            exec_stack: false,
+            stack_canary: false,
+            pie: false,
+            relro: Relro::NoRelro
+        }
+    }
+}
+
+
 /// TODO(alan): parse with struct type attributes
 /// parses an element within an ELF header / table / section based on a given predicate. Also
 /// applies a user input function to elements of a vector before parsing out the element
@@ -37,7 +73,7 @@ fn parse_elem<'a, I: PartialEq<str> + Clone>(vec: Vec<I>, apply: &Fn(I) -> &'a s
 }
 
 
-fn main() {
+fn main () {
     let matches = App::new("binsec")
         .version("1.0")
         .author("Alan")
@@ -55,22 +91,14 @@ fn main() {
              .takes_value(false)
              .required(false))
 
-        // TODO: deserialization options
+        // deserialization option
         .arg(Arg::with_name("out_format")
              .help("sets serialization format for output")
              .short("f")
              .long("format")
              .takes_value(true)
              .value_name("FORMAT")
-             .possible_values(&["raw", "json", "protobuf"])
-             .required(false))
-        .arg(Arg::with_name("out_file")
-             .help("sets name of file that saves stdout")
-             .short("o")
-             .long("output")
-             .takes_value(true)
-             .value_name("NAME")
-             .default_value("bin.out")
+             .possible_values(&["raw", "json"])
              .required(false))
         .get_matches();
 
@@ -90,10 +118,8 @@ fn main() {
         _                   => { panic!("unsupported binary format"); }
     };
 
-    // TODO: create de/serializable structure, save info
-    // TODO: conditional to write to structured data and quit
-
     // output basic binary info if set
+    // TODO: include to deserialized if flag set
     if matches.is_present("info") {
 
         // initialize blank style term table
@@ -155,6 +181,8 @@ fn main() {
         TableCell::new_with_alignment("KERNEL SECURITY FEATURES", 2, Alignment::Center)
     ]));
 
+    // initialize default binsec struct
+    let mut binsec = Binsec::default();
 
     // check for non-executable stack
     // NX bit is set when GNU_STACK is read/write only (RW)
@@ -166,9 +194,11 @@ fn main() {
 
     if let Some(sh) = stack_header {
         if sh.p_flags == 6 {
+            binsec.exec_stack = true;
             nx_row.push(TableCell::new_with_alignment("Enabled", 1, Alignment::Right));
         }
     } else {
+        binsec.exec_stack = false;
         nx_row.push(TableCell::new_with_alignment("Not Enabled", 1, Alignment::Right));
     }
     table.add_row(Row::new(nx_row));
@@ -193,13 +223,16 @@ fn main() {
                     .cloned();
 
                 if let None = dyn_seg {
+                    binsec.relro = Relro::PartialRelro;
                     relro_row.push(TableCell::new_with_alignment("Partial RELRO enabled", 1, Alignment::Right));
                 } else {
+                    binsec.relro = Relro::FullRelro;
                     relro_row.push(TableCell::new_with_alignment("Full RELRO enabled", 1, Alignment::Right));
                 }
             }
         }
     } else {
+        binsec.relro = Relro::NoRelro;
         relro_row.push(TableCell::new_with_alignment("No RELRO enabled", 1, Alignment::Right));
     }
     table.add_row(Row::new(relro_row));
@@ -214,8 +247,10 @@ fn main() {
     let mut sc_row = vec![TableCell::new("Stack Canary")];
 
     if let None = str_sym {
+        binsec.stack_canary = false;
         sc_row.push(TableCell::new_with_alignment("Not Enabled", 1, Alignment::Right));
     } else {
+        binsec.stack_canary = true;
         sc_row.push(TableCell::new_with_alignment("Enabled", 1, Alignment::Right));
     }
     table.add_row(Row::new(sc_row));
@@ -228,17 +263,20 @@ fn main() {
 
         // ET_EXEC
         2 => {
+            binsec.pie = false;
             pie_row.push(TableCell::new_with_alignment("PIE disabled (executable)", 1, Alignment::Right));
         }
 
         // ET_DYN
         3 => {
             // TODO: check if shared object
+            binsec.pie = true;
             pie_row.push(TableCell::new_with_alignment("PIE enabled (PIE executable)", 1, Alignment::Right));
         },
 
         // ET_*
         _                  => {
+            binsec.pie = false;
             pie_row.push(TableCell::new_with_alignment("Unknown (unknown filetype)", 1, Alignment::Right));
         }
     }
@@ -246,6 +284,14 @@ fn main() {
 
     // TODO: SELinux, fortify-source, runpath
 
-    // render and output table
-    println!("{}", table.render());
+    // render and output based on out_format
+    match matches.value_of("out_format") {
+        Some("json")                    => {
+            println!("{}", serde_json::to_string_pretty(&binsec).unwrap());
+        },
+        Some("raw") | Some(&_) | None   => {
+            println!("{}", table.render());
+        },
+
+    }
 }

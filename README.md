@@ -8,9 +8,9 @@ __binsec__ is a utility that statically checks ELF binaries for Linux kernel sec
 
 ## features
 
-* __Checks for__: RELRO, NX, PIE, stack canary 
+* __Checks for__: RELRO, NX, PIE, stack canary
 * __Fast__: libgoblin is used as backend for low-level ELF parsing
-* __Intuitive__: (TODO) provides `gcc` flag recommendations
+* __Convenient__: JSON, `gcc` flag recommendations _(TODO)_
 
 ## usage
 
@@ -24,6 +24,12 @@ To check for security features:
 
 ```
 $ binsec ./my_binary
+```
+
+To deserialize to JSON:
+
+```
+$ binsec ./my_binary f=json
 ```
 
 With more info:
