@@ -83,7 +83,7 @@ fn main () {
         .arg(Arg::with_name("BINARY")
              .help("sets binary to analyze")
              .index(1)
-             .required(false))
+             .required(true))
         .arg(Arg::with_name("info")
              .help("outputs other binary info")
              .short("i")
@@ -196,13 +196,12 @@ fn main () {
         if sh.p_flags == 6 {
             binsec.exec_stack = true;
             nx_row.push(TableCell::new_with_alignment("Enabled", 1, Alignment::Right));
+        } else {
+            binsec.exec_stack = false;
+            nx_row.push(TableCell::new_with_alignment("Not Enabled", 1, Alignment::Right));
         }
-    } else {
-        binsec.exec_stack = false;
-        nx_row.push(TableCell::new_with_alignment("Not Enabled", 1, Alignment::Right));
     }
     table.add_row(Row::new(nx_row));
-
 
 
     // check for RELRO
@@ -215,7 +214,8 @@ fn main () {
     if let Some(rh) = relro_header {
         if rh.p_flags == 4 {
 
-            // check for full/partial RELRO support
+            // check for full/partial RELRO support by checking dynamic section for DT_BIND_NOW flag.
+            // DT_BIND_NOW takes precedence over lazy binding and processes relocations before actual execution.
             if let Some(segs) = elf.dynamic {
                 let dyn_seg: Option<Dyn> = segs.dyns
                     .iter()
@@ -230,10 +230,11 @@ fn main () {
                     relro_row.push(TableCell::new_with_alignment("Full RELRO enabled", 1, Alignment::Right));
                 }
             }
+
+        } else {
+            binsec.relro = Relro::NoRelro;
+            relro_row.push(TableCell::new_with_alignment("No RELRO enabled", 1, Alignment::Right));
         }
-    } else {
-        binsec.relro = Relro::NoRelro;
-        relro_row.push(TableCell::new_with_alignment("No RELRO enabled", 1, Alignment::Right));
     }
     table.add_row(Row::new(relro_row));
 
