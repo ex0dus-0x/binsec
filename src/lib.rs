@@ -10,6 +10,8 @@ use std::io::prelude::*;
 
 use serde::{Serialize, Deserialize};
 
+use colored::*;
+
 use term_table::{
     row::Row,
     table_cell::{Alignment, TableCell},
@@ -203,9 +205,9 @@ impl Detector {
 		Ok(self)
 	}
 
-    /// `output` takes a configuration of a format and color flag in order to
-    /// properly display output
-	pub fn output(&self, format: &Format, color: bool) -> () {
+    /// `output` takes a configuration of a format in order to
+    /// properly display serializable or raw out.
+	pub fn output(&self, format: &Format) -> () {
 		if let Some(elf_info) = &self.basic_info {
 
             // output table
@@ -219,7 +221,7 @@ impl Detector {
 
                     // main header
                     basic_table.add_row(Row::new(vec![
-                        TableCell::new_with_alignment("BASIC BINARY INFORMATION", 2, Alignment::Center)
+                        TableCell::new_with_alignment("BASIC BINARY INFORMATION".underline(), 2, Alignment::Center)
                     ]));
 
                     // path
@@ -270,19 +272,19 @@ impl Detector {
                 // initialize ASCII terminal table
                 let mut table = Table::new();
                 table.max_column_width = 60;
-                table.style = TableStyle::extended();
+                table.style = TableStyle::blank();
 
                 // header row
                 table.add_row(Row::new(vec![
-                    TableCell::new_with_alignment("KERNEL SECURITY FEATURES", 2, Alignment::Center)
+                    TableCell::new_with_alignment("KERNEL SECURITY FEATURES".underline(), 2, Alignment::Center)
                 ]));
 
                 // NX row
                 let mut nx_row = vec![TableCell::new("NX bit")];
                 if self.features.exec_stack {
-                    nx_row.push(TableCell::new_with_alignment("Enabled", 1, Alignment::Right));
+                    nx_row.push(TableCell::new_with_alignment("Enabled".green(), 1, Alignment::Right));
                 } else {
-                    nx_row.push(TableCell::new_with_alignment("Disabled", 1, Alignment::Right));
+                    nx_row.push(TableCell::new_with_alignment("Disabled".red(), 1, Alignment::Right));
                 }
                 table.add_row(Row::new(nx_row));
 
@@ -290,13 +292,13 @@ impl Detector {
                 let mut relro_row = vec![TableCell::new("RELRO")];
                 match self.features.relro {
                     Relro::PartialRelro => {
-                        relro_row.push(TableCell::new_with_alignment("Partial RELRO enabled", 1, Alignment::Right));
+                        relro_row.push(TableCell::new_with_alignment("Partial RELRO enabled".yellow(), 1, Alignment::Right));
                     },
                     Relro::FullRelro => {
-                        relro_row.push(TableCell::new_with_alignment("Full RELRO enabled", 1, Alignment::Right));
+                        relro_row.push(TableCell::new_with_alignment("Full RELRO enabled".green(), 1, Alignment::Right));
                     },
                     Relro::NoRelro => {
-                        relro_row.push(TableCell::new_with_alignment("No RELRO enabled", 1, Alignment::Right));
+                        relro_row.push(TableCell::new_with_alignment("No RELRO enabled".red(), 1, Alignment::Right));
                     }
                 }
                 table.add_row(Row::new(relro_row));
@@ -304,19 +306,19 @@ impl Detector {
                 // stack canary row
                 let mut sc_row = vec![TableCell::new("Stack Canary")];
                 if self.features.stack_canary {
-                    sc_row.push(TableCell::new_with_alignment("Enabled", 1, Alignment::Right));
+                    sc_row.push(TableCell::new_with_alignment("Enabled".green(), 1, Alignment::Right));
                 } else {
-                    sc_row.push(TableCell::new_with_alignment("Not Enabled", 1, Alignment::Right));
+                    sc_row.push(TableCell::new_with_alignment("Not Enabled".red(), 1, Alignment::Right));
                 }
                 table.add_row(Row::new(sc_row));
 
                 // PIE row
                 let mut pie_row = vec![TableCell::new("PIE")];
                 if self.features.pie {
-                    pie_row.push(TableCell::new_with_alignment("PIE enabled (PIE executable)", 1, Alignment::Right));
+                    pie_row.push(TableCell::new_with_alignment("PIE enabled (PIE executable)".green(), 1, Alignment::Right));
                 } else {
                     //pie_row.push(TableCell::new_with_alignment("Unknown (unknown filetype)", 1, Alignment::Right));
-                    pie_row.push(TableCell::new_with_alignment("PIE disabled (executable)", 1, Alignment::Right));
+                    pie_row.push(TableCell::new_with_alignment("PIE disabled (executable)".red(), 1, Alignment::Right));
                 }
                 table.add_row(Row::new(pie_row));
                 println!("{}", table.render());

@@ -4,6 +4,7 @@
 //!
 extern crate clap;
 extern crate term_table;
+extern crate colored;
 extern crate goblin;
 extern crate serde;
 extern crate binsec;
@@ -11,8 +12,8 @@ extern crate binsec;
 use std::iter::Iterator;
 
 use clap::{Arg, App, AppSettings};
-
-use binsec::{Detector, Format, Relro};
+use colored::*;
+use binsec::{Detector, Format};
 
 
 /// TODO(alan): parse with struct type attributes
@@ -55,13 +56,6 @@ fn main() {
              .takes_value(true)
              .value_name("FORMAT")
              .possible_values(&["normal", "json", "toml"])
-             .required(false))
-
-        .arg(Arg::with_name("no_color")
-             .help("disable colored output")
-             .short("n")
-             .long("--no_color")
-             .takes_value(false)
              .required(false)
         )
         .get_matches();
@@ -73,7 +67,6 @@ fn main() {
     
     // set flags to be used for detection output
     let basic_info: bool = matches.is_present("info");
-    let color: bool = !matches.is_present("no_color");
     
     // render and output based on out_format
     let format = match matches.value_of("out_format") {
@@ -86,7 +79,8 @@ fn main() {
     for binary in binaries {
         let mut detector = Detector::new(binary.to_string(), basic_info);
         if let Ok(d) = detector.detect() {
-            d.output(&format, color);
+            println!("[{}] {}", "*".cyan(), binary.bold());
+            d.output(&format);
         }
     }
 }
