@@ -64,10 +64,10 @@ fn main() {
     // retrieve binaries for analysis
     let binaries: Vec<&str> = matches.values_of("BINARY")
                                      .unwrap().collect();
-    
+
     // set flags to be used for detection output
     let basic_info: bool = matches.is_present("info");
-    
+
     // render and output based on out_format
     let format = match matches.value_of("out_format") {
         Some("json") => Format::Json,
