@@ -8,7 +8,7 @@ edition = "2018"
 
 clap = "2.33.0"
 term-table = "1.1.0"
-colored = "1.8"
+colored = "1.9"
 
 goblin = "0.2.0"
 
