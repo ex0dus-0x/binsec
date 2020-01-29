@@ -40,6 +40,8 @@ pub enum Relro {
     NoRelro
 }
 
+/// defines the currently supported formats available to serialize
+/// information.
 pub enum Format {
     Normal,
     Json,
@@ -51,7 +53,6 @@ pub enum Format {
 /// to be outputted and deserialized if user chooses to.
 #[derive(Default, Serialize, Deserialize)]
 pub struct BinInfo {
-    pub path: PathBuf,
     pub machine: String,
     pub file_class: String,
     pub bin_type: String,
@@ -86,7 +87,7 @@ impl Default for Binsec {
 /// `Detector` defines the main interface struct for CLI. Used to store parsed cli opts
 /// generate a Binsec struct, and output accordingly using a builder pattern.
 pub struct Detector {
-    binary: String,
+    path: PathBuf,
     pub basic_info: Option<BinInfo>,
     pub features: Binsec
 }
@@ -95,7 +96,7 @@ pub struct Detector {
 impl Default for Detector {
     fn default() -> Self {
         Self {
-            binary: String::new(),
+            path: PathBuf::new(),
             basic_info: None,
             features: Binsec::default()
         }
@@ -107,19 +108,44 @@ impl Detector {
 
     /// `new()` initializes a binsec detector by setting necessary output options,
     /// and initializing a default Binsec struct.
-    pub fn new(binary: String, info_flag: bool) -> Self {
-        let basic_info = if info_flag { Some(BinInfo::default()) } else { None };
-        Self { binary, basic_info, ..Detector::default() }
+    pub fn new(_binary: String) -> io::Result<Self> {
+
+        // initialize absolute path and parse binary
+        let _path = Path::new(_binary.as_str());
+
+        // get full absolute path to binary
+        let path = fs::canonicalize(_path.to_path_buf())?;
+        Ok(Self { path, ..Detector::default() })
+    }
+
+
+    /// `basic_info()` is a helper method that parses out basic ELF binary information and
+    /// returns it in a de/serializable BinInfo object.
+    #[inline]
+    fn basic_info(header: header::Header) -> BinInfo {
+
+        // TODO: detect other non-Linux file types
+        let file_class: &str = match header.e_ident[4] {
+            1 => "ELF32",
+            2 => "ELF64",
+            _ => "unknown"
+        };
+
+        // build up `basic_info` attribute with binary information
+        BinInfo {
+            machine: header::machine_to_str(header.e_machine).to_string(),
+            file_class: file_class.to_string(),
+            bin_type: header::et_to_str(header.e_type).to_string(),
+            entry_point: header.e_entry,
+        }
     }
 
 
     /// `detect()` statically checks for security features for instantiated binary,
-    /// and updates defaultly instantiated features attribute.
-    pub fn detect(&mut self) -> io::Result<&Self> {
+    /// and updates default instantiated features attribute.
+    pub fn detect(&mut self, basic_info: bool) -> io::Result<&Self> {
 
-        // initialize path and file
-        let path = Path::new(&self.binary);
-        let mut fd = File::open(path)?;
+        let mut fd = File::open(self.path.clone())?;
 
         // read file to buffer and parse (continue only if ELF32/64)
         let buffer = { let mut v = Vec::new(); fd.read_to_end(&mut v)?; v};
@@ -128,33 +154,14 @@ impl Detector {
             _   => { panic!("unsupported binary format"); }
         };
 
-        // first, detect basic features if set and build BinInfo struct
-        if let Some(_) = self.basic_info {
-
-            // get full absolute path to specified binary
-            let bin_path = fs::canonicalize(path.to_path_buf())?;
-
-            // TODO: detect other non-Linux file types
-            let file_class: &str = match elf.header.e_ident[4] {
-                1 => "ELF32",
-                2 => "ELF64",
-                _ => "unknown"
-            };
-
-            // build up `basic_info` attribute with binary information
-            self.basic_info = Some(BinInfo {
-                path: bin_path,
-                machine: header::machine_to_str(elf.header.e_machine).to_string(),
-                file_class: file_class.to_string(),
-                bin_type: header::et_to_str(elf.header.e_type).to_string(),
-                entry_point: elf.header.e_entry,
-            });
+        // check if flag is configured, and build up BinInfo from ELF header
+        if basic_info {
+            let header: header::Header = elf.header;
+            self.basic_info = Some(Detector::basic_info(header));
         }
 
-        // now check for actual security features
-
         // non-exec stack: NX bit is set when GNU_STACK is read/write
-        let stack_header: Option<ProgramHeader> =  elf.program_headers
+        let stack_header: Option<ProgramHeader> = elf.program_headers
             .iter().find(|ph| program_header::pt_to_str(ph.p_type) == "PT_GNU_STACK")
             .cloned();
 
@@ -174,7 +181,7 @@ impl Detector {
 
                 // check for full/partial RELRO support by checking dynamic section for DT_BIND_NOW flag.
                 // DT_BIND_NOW takes precedence over lazy binding and processes relocations before actual execution.
-                if let Some(segs) = elf.dynamic {
+                if let Some(segs) = &elf.dynamic {
                     let dyn_seg: Option<Dyn> = segs.dyns
                         .iter()
                         .find(|tag| tag_to_str(tag.d_tag) == "DT_BIND_NOW")
@@ -228,10 +235,9 @@ impl Detector {
                     ]));
 
                     // path
-                    let path = elf_info.path.to_str().unwrap();
                     basic_table.add_row(Row::new(vec![
                         TableCell::new("Binary Path:"),
-                        TableCell::new_with_alignment(path, 1, Alignment::Right)
+                        TableCell::new_with_alignment(self.path.to_str().unwrap(), 1, Alignment::Right)
                     ]));
 
                     // machine type

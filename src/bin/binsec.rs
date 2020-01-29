@@ -77,8 +77,8 @@ fn main() {
 
     // initialize binsec detector
     for binary in binaries {
-        let mut detector = Detector::new(binary.to_string(), basic_info);
-        if let Ok(d) = detector.detect() {
+        let mut detector = Detector::new(binary.to_string()).expect("could not initialize feature detector");
+        if let Ok(d) = detector.detect(basic_info) {
             println!("[{}] {}", "*".cyan(), binary.bold());
             d.output(&format);
         }
