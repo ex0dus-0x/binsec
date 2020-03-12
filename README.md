@@ -17,7 +17,7 @@ __binsec__ is a utility that statically checks ELF binaries for Linux kernel sec
 To build and install:
 
 ```
-$ cargo install
+$ cargo install binsec
 ```
 
 To check for security features:
