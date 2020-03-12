@@ -1,5 +1,7 @@
 [package]
 name = "binsec"
+description = "static binary detection tool for Linux security features"
+license = "MIT"
 version = "0.1.0"
 authors = ["ex0dus-0x <ex0dus@codemuch.tech>"]
 edition = "2018"
