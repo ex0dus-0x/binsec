@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 
 clap = "2.33.0"
-term-table = "1.1.0"
+term-table = "1.2.1"
 colored = "1.8"
 
 goblin = "0.2.0"
