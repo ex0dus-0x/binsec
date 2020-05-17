@@ -1,10 +1,23 @@
 # binsec
 
+[![Actions][actions-badge]][actions-url]
+[![crates.io version][crates-binsec-badge]][crates-binsec]
+[![Docs][docs-badge]][docs.rs]
+
+[actions-badge]: https://github.com/ex0dus-0x/binsec/workflows/CI/badge.svg?branch=master
+[actions-url]: https://github.com/ex0dus-0x/binsec/actions
+
+[crates-binsec-badge]: https://img.shields.io/crates/v/binsec.svg
+[crates-binsec]: https://crates.io/crates/binsec
+
+[docs-badge]: https://docs.rs/binsec/badge.svg
+[docs.rs]: https://docs.rs/binsec
+
 static binary detection tool for Linux security features
 
 ## intro
 
-__binsec__ is a utility that statically checks ELF binaries for Linux kernel security features. It is a clone of the [checksec.sh](https://github.com/slimm609/checksec.sh) project, but written in Rust.
+__binsec__ is a utility that statically checks ELF binaries for Linux security features. It is a clone of the [checksec.sh](https://github.com/slimm609/checksec.sh) project, but written in Rust.
 
 ## features
 
@@ -29,10 +42,10 @@ $ binsec ./my_binary
 To deserialize to JSON:
 
 ```
-$ binsec ./my_binary f=json
+$ binsec ./my_binary -f=json
 ```
 
-With more info:
+Output other binary information:
 
 ```
 $ binsec --info ./my_binary
