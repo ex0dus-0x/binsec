@@ -3,9 +3,8 @@
 use clap::{App, AppSettings, Arg, ArgMatches};
 use colored::*;
 
-use binsec::errors::{BinResult, BinError};
 use binsec::detect::{Detector, Format};
-
+use binsec::errors::{BinError, BinResult};
 
 fn parse_args<'a>() -> ArgMatches<'a> {
     App::new("binsec")
@@ -22,14 +21,16 @@ fn parse_args<'a>() -> ArgMatches<'a> {
         )
         .arg(
             Arg::with_name("check")
-                .help("Sets the type of check to run (available: all, harden (default), \
-                      kernel, yara).")
+                .help(
+                    "Sets the type of check to run (available: all, harden (default), \
+                      kernel, yara).",
+                )
                 .short("check")
                 .long("check")
                 .takes_value(true)
                 .value_name("DETECTOR")
                 .possible_values(&["all", "harden", "kernel", "yara"])
-                .required(false)
+                .required(false),
         )
         .arg(
             Arg::with_name("info")
@@ -37,7 +38,7 @@ fn parse_args<'a>() -> ArgMatches<'a> {
                 .short("i")
                 .long("info")
                 .takes_value(false)
-                .required(false)
+                .required(false),
         )
         .arg(
             Arg::with_name("out_format")
@@ -52,9 +53,7 @@ fn parse_args<'a>() -> ArgMatches<'a> {
         .get_matches()
 }
 
-
 fn run(args: ArgMatches) -> BinResult<()> {
-
     // retrieve binaries for analysis
     let binaries: Vec<&str> = args.values_of("BINARY").unwrap().collect();
 
@@ -82,11 +81,10 @@ fn run(args: ArgMatches) -> BinResult<()> {
     Ok(())
 }
 
-
 fn main() {
     let cli_args: ArgMatches = parse_args();
     match run(cli_args) {
-        Ok(_) => {},
+        Ok(_) => {}
         Err(e) => {
             eprintln!("binsec error: {}", e);
         }

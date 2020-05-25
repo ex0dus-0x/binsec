@@ -25,5 +25,8 @@ pub struct BinInfo {
 pub struct PEChecker {
     pub exec_stack: bool,
     pub stack_canary: bool,
-    pub pie: bool
+    pub pie: bool,
+}
+
+impl PEChecker {
 }
