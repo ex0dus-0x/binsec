@@ -1,6 +1,6 @@
 [package]
 name = "binsec"
-description = "static binary detection tool for Linux security features"
+description = "Swiss Army Knife for Binary (In)Security"
 
 authors = ["ex0dus-0x <ex0dus@codemuch.tech>"]
 license = "MIT"
@@ -10,16 +10,16 @@ documentation = "https://docs.rs/binsec"
 repository = "https://github.com/ex0dus-0x/binsec"
 readme = "README.md"
 
-version = "0.2.0"
+version = "0.3.0"
 edition = "2018"
 
 [dependencies]
+
 clap = "2.33.0"
 term-table = "1.1.0"
 colored = "1.8"
-
-toml = "0.5"
 goblin = "0.2.0"
 
+csv = "1.1.3"
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
