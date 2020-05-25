@@ -20,10 +20,11 @@ use goblin::elf32 as elf;
 use goblin::elf::dynamic::{tag_to_str, Dyn};
 use goblin::elf::{header, program_header, ProgramHeader};
 
+use crate::check::Checker;
 use crate::errors::{BinError, BinResult};
 
-/// specifies type of relocation read-only, which defines how dynamic
-/// relocations are resolved as a security feature against GOT/PLT attacks.
+/// specifies type of relocation read-only, which defines how dynamic relocations
+/// are resolved as a security feature against GOT/PLT attacks.
 #[derive(Serialize, Deserialize)]
 pub enum Relro {
     FullRelro,
@@ -31,8 +32,8 @@ pub enum Relro {
     NoRelro,
 }
 
-/// struct defining parsed basic information from ELF binary
-/// to be outputted and deserialized if user chooses to.
+/// struct defining parsed basic information from ELF binary to be outputted and deserialized if
+/// user chooses to.
 #[derive(Default, Serialize, Deserialize)]
 pub struct BinInfo {
     pub machine: String,
@@ -41,12 +42,21 @@ pub struct BinInfo {
     pub entry_point: u64,
 }
 
-/// struct defining security features parsed from ELF, and
-/// derives serde de/serialize traits for structured output.
+/// struct defining security features parsed from ELF, and derives serde de/serialize traits
+/// for structured output.
 #[derive(Serialize, Deserialize)]
-pub struct ElfChecker {
-    pub exec_stack: bool,
-    pub stack_canary: bool,
-    pub pie: bool,
-    pub relro: Relro,
+pub struct ElfChecker(elf::Elf);
+
+impl ElfChecker {
+    fn new(binary: elf::Elf) -> Self {
+        Self(binary)
+    }
+}
+
+impl Checker for ElfChecker {
+
+    /// parses out basic binary information and stores it into the features mapping for consumption
+    fn basic_info(&self) -> Features {
+
+    }
 }

@@ -2,9 +2,9 @@
 //! Implements the deserializable components for output/file IO, and
 //! the main detection interface for parsing the binary for features to output.
 
-pub mod errors;
-pub mod detect;
 pub mod check;
+pub mod detect;
+pub mod errors;
 
 /*
 #![allow(unused_imports)]
@@ -14,16 +14,6 @@ use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
-
-use serde::{Deserialize, Serialize};
-
-use colored::*;
-
-use term_table::{
-    row::Row,
-    table_cell::{Alignment, TableCell},
-};
-use term_table::{Table, TableStyle};
 
 impl Default for Binsec {
     fn default() -> Self {
