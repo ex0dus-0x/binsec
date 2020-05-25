@@ -13,46 +13,57 @@
 [docs-badge]: https://docs.rs/binsec/badge.svg
 [docs.rs]: https://docs.rs/binsec
 
-static binary detection tool for Linux security features
+Swiss Army Knife for Binary (In)security
 
-## intro
+## Introduction
 
-__binsec__ is a utility that statically checks ELF binaries for Linux security features. It is a clone of the [checksec.sh](https://github.com/slimm609/checksec.sh) project, but written in Rust.
+__binsec__ is a portable and cross-platform utility for detecting security mitigations across ELF, PE and mach-O executable formats.
+While it is able to detect the usual binary hardening features across executables, it can also check for more advanced security enhacenements, from kernel configurations to its own subset of YARA-based "adversarial" checks.
 
-## features
+## Features
 
-* __Checks for__: RELRO, NX, PIE, stack canary
-* __Fast__: libgoblin is used as backend for low-level ELF parsing
-* __Convenient__: deserialization and library module support
+* Robust checks for a wide variety of security mitigations across ELF/PE/Mach-O binaries.
+* Backends [libgoblin](https://github.com/m4b/goblin) for efficient and cross-platform binary parsing.
+* Can generate serializable outputs for JSON, CSV, and Protobuf formats for storage/logging consumption.
 
-## usage
+## Use Cases
 
-To build and install:
+* Use `binsec` as part of your security tooling when conducting black-box static analysis!
+* Incorporate `binsec` as part of a malware detection pipeline to analyze mass amounts of executable samples!
+* CTFs and wargames!
+
+## How to Use
+
+### Installation
+
+__binsec__ can be installed simply through the `cargo` package manager:
 
 ```
 $ cargo install binsec
 ```
 
-To check for security features:
+You can now use `binsec` as a CLI application, and even interface the crate as a library in your own applications!
+
+### Usage
+
+
+When running __binsec__ by default, the standard binary `harden` check will be deployed for the specific binary format:
 
 ```
-$ binsec ./my_binary
+$ binsec ./a.out
 ```
 
-To deserialize to JSON:
+## Contributing
 
-```
-$ binsec ./my_binary -f=json
-```
+TODO
 
-Output other binary information:
+## Other Projects:
 
-```
-$ binsec --info ./my_binary
-```
+* hardening-check
+* checksec.sh
+* winchecksec
+* pwntools / checksec
 
-Note that you do not need to supply any arguments/flags to `./my_binary`, as __binsec__ is a _statically_-based detection tool.
+## License
 
-## license
-
-[mit](https://codemuch.tech/license.txt)
+[MIT License](https://codemuch.tech/license.txt)

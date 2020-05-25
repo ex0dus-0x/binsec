@@ -2,6 +2,11 @@
 //! Implements the deserializable components for output/file IO, and
 //! the main detection interface for parsing the binary for features to output.
 
+pub mod errors;
+pub mod detect;
+pub mod check;
+
+/*
 #![allow(unused_imports)]
 
 use std::fs;
@@ -19,54 +24,6 @@ use term_table::{
     table_cell::{Alignment, TableCell},
 };
 use term_table::{Table, TableStyle};
-
-#[cfg(target_pointer_width = "64")]
-use goblin::elf64 as elf;
-
-#[cfg(target_pointer_width = "32")]
-use goblin::elf32 as elf;
-
-use goblin::elf::dynamic::{tag_to_str, Dyn};
-use goblin::elf::{header, program_header, ProgramHeader};
-use goblin::Object;
-
-/// specifies type of relocation read-only, which defines how dynamic
-/// relocations are resolved as a security feature against GOT/PLT attacks.
-#[derive(Serialize, Deserialize)]
-pub enum Relro {
-    FullRelro,
-    PartialRelro,
-    NoRelro,
-}
-
-/// defines the currently supported formats available to serialize
-/// information.
-pub enum Format {
-    Normal,
-    Json,
-    Toml,
-}
-
-/// struct defining parsed basic information from ELF binary
-/// to be outputted and deserialized if user chooses to.
-#[derive(Default, Serialize, Deserialize)]
-pub struct BinInfo {
-    pub machine: String,
-    pub file_class: String,
-    pub bin_type: String,
-    pub entry_point: u64,
-}
-
-/// struct defining security features parsed from ELF, and
-/// derives serde de/serialize traits for structured output.
-/// TODO: SELinux, fortify-source, runpath
-#[derive(Serialize, Deserialize)]
-pub struct Binsec {
-    pub exec_stack: bool,
-    pub stack_canary: bool,
-    pub pie: bool,
-    pub relro: Relro,
-}
 
 impl Default for Binsec {
     fn default() -> Self {
@@ -109,7 +66,7 @@ impl Detector {
         Ok(Self {
             path,
             ..Detector::default()
-        })
+       })
     }
 
     /// `basic_info()` is a helper method that parses out basic ELF binary information and
@@ -393,3 +350,4 @@ impl Detector {
         }
     }
 }
+*/
