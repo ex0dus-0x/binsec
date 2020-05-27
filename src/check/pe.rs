@@ -7,6 +7,9 @@
 
 use serde::{Deserialize, Serialize};
 
+use goblin::pe::PE;
+
+use crate::check::{Checker, Features};
 use crate::errors::{BinError, BinResult};
 
 /// struct defining parsed basic information from ELF binary
@@ -22,11 +25,20 @@ pub struct BinInfo {
 /// struct defining security features parsed from ELF, and
 /// derives serde de/serialize traits for structured output.
 #[derive(Serialize, Deserialize)]
-pub struct PEChecker {
-    pub exec_stack: bool,
-    pub stack_canary: bool,
-    pub pie: bool,
-}
+pub struct PEChecker(PE<'static>);
 
 impl PEChecker {
+    pub fn new(pe: PE) -> Self {
+        Self(pe)
+    }
+}
+
+impl Checker for PEChecker {
+    fn bin_info(&self) -> Features {
+        todo!()
+    }
+
+    fn harden_check(&self) -> Features {
+        todo!()
+    }
 }

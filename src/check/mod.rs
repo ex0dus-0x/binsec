@@ -3,17 +3,37 @@
 //! needed to properly do all security mitigation detections per platform.
 
 pub mod elf;
-pub mod pe;
 pub mod mach;
+pub mod pe;
 
+use std::fmt::{self, Display};
 use std::collections::BTreeMap;
 
 // type alias for detecting features
-type Features = BTreeMap<String, bool>;
+pub type Features = BTreeMap<String, BTreeMap<String, bool>>;
+
+// implement how we want to output features normally
+impl Display for Features {
+    fn fmt(&self, f: fmt::Formatter) -> fmt::Result {
+        let out_string: String = String::new();
+        for (key, features) in self.iter() {
+
+            // append title with newline
+            out_string.push(key);
+            out_string.push("\n");
+
+            // print feature name and config with equidistance
+            for (name, config) in features {
+                let feature_line: String = format!("{}\t\t{}", name, config);
+                out_string.push(feature_line);
+            }
+        }
+        write!(f, "{}", out_string.as_str())
+    }
+}
 
 
 pub trait Checker {
-
     /// parses out and returns basic binary information for more verbose
     /// user output
     fn bin_info(&self) -> Features;
@@ -24,9 +44,13 @@ pub trait Checker {
 
     /// defines checks that determine security features configured on the kernel that the
     /// binary is running on.
-    fn kernel_check(&self) -> Features;
+    fn kernel_check(&self) -> Features {
+        todo!()
+    }
 
     /// runs the custom set of YARA-based rules against the specific binary. This is
     /// default across all formats, as the rules are built to include cases for all formats.
-    fn rule_check(&self) -> Features;
+    fn rule_check(&self) -> Features {
+        todo!()
+    }
 }

@@ -26,24 +26,6 @@ impl Default for Binsec {
     }
 }
 
-/// `Detector` defines the main interface struct for CLI. Used to store parsed cli opts
-/// generate a Binsec struct, and output accordingly using a builder pattern.
-pub struct Detector {
-    path: PathBuf,
-    pub basic_info: Option<BinInfo>,
-    pub features: Binsec,
-}
-
-impl Default for Detector {
-    fn default() -> Self {
-        Self {
-            path: PathBuf::new(),
-            basic_info: None,
-            features: Binsec::default(),
-        }
-    }
-}
-
 impl Detector {
     /// `new()` initializes a binsec detector by setting necessary output options,
     /// and initializing a default Binsec struct.

@@ -42,12 +42,12 @@ fn parse_args<'a>() -> ArgMatches<'a> {
         )
         .arg(
             Arg::with_name("out_format")
-                .help("Sets output format (available: normal (default), json, csv, protobuf).")
+                .help("Sets output format (available: normal (default), json, protobuf).")
                 .short("f")
                 .long("format")
                 .takes_value(true)
                 .value_name("FORMAT")
-                .possible_values(&["normal", "json", "csv", "protobuf"])
+                .possible_values(&["normal", "json", "protobuf"])
                 .required(false),
         )
         .get_matches()
@@ -63,7 +63,6 @@ fn run(args: ArgMatches) -> BinResult<()> {
     // render and output based on out_format
     let format = match args.value_of("out_format") {
         Some("json") => Format::Json,
-        Some("csv") => Format::Csv,
         Some("protobuf") => Format::Protobuf,
         Some("normal") | Some(&_) | None => Format::Normal,
     };

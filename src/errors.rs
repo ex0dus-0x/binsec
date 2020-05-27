@@ -33,7 +33,7 @@ impl From<std::io::Error> for BinError {
     fn from(error: std::io::Error) -> Self {
         Self {
             kind: ErrorKind::FileError,
-            msg: error.to_string()
+            msg: error.to_string(),
         }
     }
 }
@@ -42,7 +42,7 @@ impl From<goblin::error::Error> for BinError {
     fn from(error: goblin::error::Error) -> Self {
         Self {
             kind: ErrorKind::BinaryError,
-            msg: error.to_string()
+            msg: error.to_string(),
         }
     }
 }
