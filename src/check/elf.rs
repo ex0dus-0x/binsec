@@ -11,17 +11,11 @@
 
 use serde::{Deserialize, Serialize};
 
-#[cfg(target_pointer_width = "64")]
-use goblin::elf64 as elf;
-
-#[cfg(target_pointer_width = "32")]
-use goblin::elf32 as elf;
-
 use goblin::elf::dynamic::{tag_to_str, Dyn};
-use goblin::elf::{header, program_header, ProgramHeader};
+use goblin::elf::{header, program_header, Elf, ProgramHeader};
 
-use crate::check::Checker;
-use crate::errors::{BinError, BinResult};
+use crate::check::{Checker, Features};
+use crate::errors::{BinError, BinResult, ErrorKind};
 
 /// specifies type of relocation read-only, which defines how dynamic relocations
 /// are resolved as a security feature against GOT/PLT attacks.
@@ -45,18 +39,23 @@ pub struct BinInfo {
 /// struct defining security features parsed from ELF, and derives serde de/serialize traits
 /// for structured output.
 #[derive(Serialize, Deserialize)]
-pub struct ElfChecker(elf::Elf);
+pub struct ElfChecker {
+    elf: Elf
+}
 
 impl ElfChecker {
-    fn new(binary: elf::Elf) -> Self {
+    pub fn new(binary: Elf) -> Self {
         Self(binary)
     }
 }
 
 impl Checker for ElfChecker {
-
     /// parses out basic binary information and stores it into the features mapping for consumption
-    fn basic_info(&self) -> Features {
+    fn bin_info(&self) -> Features {
 
+    }
+
+    fn harden_check(&self) -> Features {
+        todo!()
     }
 }

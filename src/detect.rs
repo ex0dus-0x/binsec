@@ -7,9 +7,10 @@ use std::fs;
 use std::path::PathBuf;
 
 use goblin::{error, Object};
+use goblin::mach::Mach::{Binary, Fat};
 
 use crate::check::{elf, mach, pe, Checker, Features};
-use crate::errors::BinResult;
+use crate::errors::{BinError, BinResult, ErrorKind};
 
 /// Defines the output format variants that are supported by binsec. Enforces a uniform `dump()`
 /// function to perform serialization to the respective format when outputting back to user.
@@ -17,7 +18,6 @@ pub enum BinFormat {
     Normal,
     Table,
     Json,
-    Csv,
     Protobuf,
 }
 
@@ -33,10 +33,11 @@ impl BinFormat {
                     table_cell::{Alignment, TableCell},
                 };
                 use term_table::{Table, TableStyle};
+
+                todo!()
             }
-            BinFormat::Json => Ok(serde_json::to_string_pretty(input)),
-            BinFormat::Csv => Ok(),
-            BinFormat::Protobuf => Ok(),
+            BinFormat::Json => Ok(serde_json::to_string_pretty(&input).unwrap()),
+            BinFormat::Protobuf => todo!(),
         }
     }
 }
@@ -60,8 +61,18 @@ impl Detector {
         let buffer = fs::read(path)?;
         let checker: Box<dyn Checker + 'static> = match Object::parse(&buffer)? {
             Object::Elf(elf) => Box::new(elf::ElfChecker::new(elf)),
-            Object::Mach(mach) => Box::new(mach::MachChecker::new(mach)),
             Object::PE(pe) => Box::new(pe::PEChecker::new(pe)),
+            Object::Mach(_mach) => {
+                match _mach {
+                    Binary(mach) =>  Box::new(mach::MachChecker::new(mach)),
+                    Fat(fat) => {
+                        return Err(BinError {
+                           kind: ErrorKind::BinaryError,
+                           msg: "does not support multiarch FAT binary containers".to_string()
+                        });
+                    }
+                }
+            }
         };
 
         Ok(Self {
