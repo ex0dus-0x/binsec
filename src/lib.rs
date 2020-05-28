@@ -5,6 +5,7 @@
 pub mod check;
 pub mod detect;
 pub mod errors;
+pub mod format;
 
 /*
 #![allow(unused_imports)]
@@ -14,17 +15,6 @@ use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
-
-impl Default for Binsec {
-    fn default() -> Self {
-        Self {
-            exec_stack: false,
-            stack_canary: false,
-            pie: false,
-            relro: Relro::NoRelro,
-        }
-    }
-}
 
 impl Detector {
     /// `new()` initializes a binsec detector by setting necessary output options,
