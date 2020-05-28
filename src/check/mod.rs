@@ -6,40 +6,30 @@ pub mod elf;
 pub mod mach;
 pub mod pe;
 
-use std::fmt::{self, Display};
 use std::collections::BTreeMap;
+use std::fmt::{self, Display};
+
+use serde::{Deserialize, Serialize};
 
 // type alias for detecting features
 pub type Features = BTreeMap<String, BTreeMap<String, bool>>;
 
-// implement how we want to output features normally
-impl Display for Features {
-    fn fmt(&self, f: fmt::Formatter) -> fmt::Result {
-        let out_string: String = String::new();
-        for (key, features) in self.iter() {
-
-            // append title with newline
-            out_string.push(key);
-            out_string.push("\n");
-
-            // print feature name and config with equidistance
-            for (name, config) in features {
-                let feature_line: String = format!("{}\t\t{}", name, config);
-                out_string.push(feature_line);
-            }
-        }
-        write!(f, "{}", out_string.as_str())
-    }
+/// struct defining parsed basic information from ELF binary to be outputted and deserialized if
+/// user chooses to.
+#[derive(Default, Serialize, Deserialize)]
+pub struct BinInfo {
+    pub machine: String,
+    pub file_class: String,
+    pub bin_type: String,
+    pub entry_point: u64,
 }
 
-
 pub trait Checker {
-    /// parses out and returns basic binary information for more verbose
-    /// user output
-    fn bin_info(&self) -> Features;
+    /// parses out and returns basic binary information for more verbose user output
+    fn bin_info(&self) -> BinInfo;
 
-    /// defines the function be implemented in order to detect the
-    /// standard binary hardening features usually enforced by the compiler.
+    /// defines the function be implemented in order to detect the standard binary hardening
+    /// features usually enforced by the compiler.
     fn harden_check(&self) -> Features;
 
     /// defines checks that determine security features configured on the kernel that the
