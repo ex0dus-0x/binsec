@@ -19,8 +19,8 @@ pub enum ErrorKind {
 /// Defines the main error type used for any exception that occurs.
 #[derive(Debug)]
 pub struct BinError {
-    kind: ErrorKind,
-    msg: String,
+    pub kind: ErrorKind,
+    pub msg: String,
 }
 
 impl Display for BinError {
