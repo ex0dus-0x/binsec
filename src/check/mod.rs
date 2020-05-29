@@ -25,7 +25,7 @@ pub struct BinInfo {
 }
 
 pub trait Checker {
-    /// parses out and returns basic binary information for more verbose user output
+    /// parses out and returns basic binary information for more verbose user output.
     fn bin_info(&self) -> BinInfo;
 
     /// defines the function be implemented in order to detect the standard binary hardening

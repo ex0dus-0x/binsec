@@ -3,8 +3,9 @@
 use clap::{App, AppSettings, Arg, ArgMatches};
 use colored::*;
 
-use binsec::detect::{Detector, Format};
-use binsec::errors::{BinError, BinResult};
+use binsec::detect::{ExecMode, Detector};
+use binsec::format::BinFormat;
+use binsec::errors::BinResult;
 
 fn parse_args<'a>() -> ArgMatches<'a> {
     App::new("binsec")
@@ -17,20 +18,21 @@ fn parse_args<'a>() -> ArgMatches<'a> {
                 .help("Path to binary or binaries to analyze.")
                 .index(1)
                 .multiple(true)
-                .required(true),
+                .required(true)
         )
         .arg(
             Arg::with_name("check")
                 .help(
                     "Sets the type of check to run (available: all, harden (default), \
-                      kernel, yara).",
+                      kernel, yara)."
                 )
                 .short("check")
                 .long("check")
                 .takes_value(true)
                 .value_name("DETECTOR")
                 .possible_values(&["all", "harden", "kernel", "yara"])
-                .required(false),
+                .multiple(true)
+                .required(false)
         )
         .arg(
             Arg::with_name("info")
@@ -38,17 +40,17 @@ fn parse_args<'a>() -> ArgMatches<'a> {
                 .short("i")
                 .long("info")
                 .takes_value(false)
-                .required(false),
+                .required(false)
         )
         .arg(
             Arg::with_name("out_format")
-                .help("Sets output format (available: normal (default), json, protobuf).")
+                .help("Sets output format (available: normal (default), table, json, protobuf).")
                 .short("f")
                 .long("format")
                 .takes_value(true)
                 .value_name("FORMAT")
-                .possible_values(&["normal", "json", "protobuf"])
-                .required(false),
+                .possible_values(&["normal", "table", "json", "protobuf"])
+                .required(false)
         )
         .get_matches()
 }
@@ -61,22 +63,33 @@ fn run(args: ArgMatches) -> BinResult<()> {
     let basic_info: bool = args.is_present("info");
 
     // render and output based on out_format
-    let format = match args.value_of("out_format") {
-        Some("json") => Format::Json,
-        Some("protobuf") => Format::Protobuf,
-        Some("normal") | Some(&_) | None => Format::Normal,
+    let format: BinFormat = match args.value_of("out_format") {
+        Some("json") => BinFormat::Json,
+        Some("protobuf") => BinFormat::Protobuf,
+        Some("table") => BinFormat::Table,
+        Some("normal") | Some(&_) | None => BinFormat::Normal,
+    };
+
+    // parse out the mode of execution we are using for checks
+    let check: ExecMode = match args.value_of("check") {
+        Some("all") => ExecMode::All,
+        Some("harden") => ExecMode::Harden,
+        Some("kernel") => ExecMode::Kernel,
+        Some("yara") => ExecMode::Yara
     };
 
     // initialize binsec detector
     for binary in binaries {
+        // initialize detector for the binary
         let mut detector =
-            Detector::new(binary.to_string()).expect("could not initialize feature detector");
-        if let Ok(d) = detector.detect(basic_info) {
+            Detector::new(binary.to_string(), format, None).expect("could not initialize feature detector");
+
+        // given the configuration,
+        if let Ok(d) = detector.detect(check, basic_info) {
             println!("[{}] {}", "*".cyan(), binary.bold());
-            d.output(&format);
+            println!("{}", d.output(&format)?);
         }
     }
-
     Ok(())
 }
 

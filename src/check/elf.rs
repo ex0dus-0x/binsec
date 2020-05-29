@@ -29,19 +29,22 @@ pub enum Relro {
 
 /// encapsulates an ELF object from libgoblin, in order to parse it and dissect out the necessary
 /// security mitigation features.
-pub struct ElfChecker(Elf<'static>);
+#[derive(Serialize, Deserialize)]
+pub struct ElfChecker;
 
 impl ElfChecker {
     /// parses and dissects out the necessary components for security feature detection given a
     /// valid ELF binary.
-    pub fn new(binary: Elf<'static>) -> Self {
-        Self(binary)
+    pub fn new(binary: Elf) -> Self {
+        todo!()
     }
 }
 
 impl Checker for ElfChecker {
-    /// parses out basic binary information and stores it into the features mapping for consumption
+    /// parses out basic binary information and stores it into the BinInfo mapping for later
+    /// consumption and display.
     fn bin_info(&self) -> BinInfo {
+        /*
         let header: header::Header = self.0.header;
         let file_class: &str = match header.e_ident[4] {
             1 => "ELF32",
@@ -54,9 +57,11 @@ impl Checker for ElfChecker {
             file_class: file_class.to_string(),
             bin_type: header::et_to_str(header.e_type).to_string(),
             entry_point: header.e_entry,
-        }
+        }*/
+        todo!()
     }
 
+    /// implements the necesary checks for the security mitigations for the specific file format.
     fn harden_check(&self) -> Features {
         todo!()
     }

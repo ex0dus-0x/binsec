@@ -21,7 +21,7 @@ pub enum BinFormat {
 impl BinFormat {
     /// helper for constructing a normal output string for display given a Features `BTreeMap`.
     #[inline]
-    fn make_normal(input: Features) -> String {
+    fn make_normal(input: &Features) -> String {
         let mut out_string: String = String::new();
         for (key, features) in input.iter() {
             // append title with newline
@@ -39,7 +39,7 @@ impl BinFormat {
 
     /// helper for constructing a table output string for display given a Features `BTreeMap`.
     #[inline]
-    fn make_table(input: Features) -> String {
+    fn make_table(input: &Features) -> String {
         use term_table::{
             row::Row,
             table_cell::{Alignment, TableCell},
@@ -72,13 +72,13 @@ impl BinFormat {
     }
 
     #[inline]
-    fn make_protobuf(input: Features) -> String {
+    fn make_protobuf(input: &Features) -> String {
         todo!()
     }
 
     /// constructs a printable string for respective output format for display or persistent
     /// storage by consuming a ``.
-    pub fn dump(&self, input: Features) -> BinResult<String> {
+    pub fn dump(&self, input: &Features) -> BinResult<String> {
         match self {
             BinFormat::Normal => Ok(BinFormat::make_normal(input)),
             BinFormat::Table => Ok(BinFormat::make_table(input)),
