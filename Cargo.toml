@@ -10,7 +10,7 @@ documentation = "https://docs.rs/binsec"
 repository = "https://github.com/ex0dus-0x/binsec"
 readme = "README.md"
 
-version = "0.3.0"
+version = "1.0.0"
 edition = "2018"
 
 [dependencies]

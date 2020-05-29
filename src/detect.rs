@@ -28,17 +28,12 @@ pub struct Detector<'a> {
     path: PathBuf,
     checker: Box<dyn Checker + 'a>,
     features: Option<Features>,
-    out_format: BinFormat,
-    out_path: Option<PathBuf>,
 }
 
 impl<'a> Detector<'a> {
     /// given a path to a binary and format for output, instantiate the checker for the specific
     /// platform and other attributes necessary for runtime.
-    pub fn new(_path: String, out_format: BinFormat, out_path: Option<PathBuf>) -> BinResult<Self> {
-
-        // initialize path from string input
-        let path: PathBuf = PathBuf::from(_path);
+    pub fn new(path: PathBuf) -> BinResult<Self> {
 
         // read from input path and instantiate checker based on binary format
         let mut fd = File::open(path.clone())?;
@@ -72,23 +67,21 @@ impl<'a> Detector<'a> {
         Ok(Self {
             path: fs::canonicalize(path)?,
             checker,
-            features: None,
-            out_format,
-            out_path,
+            features: None
         })
     }
 
     /// implements the actual detection routine that executes the checks necessary and emits a
     /// `Features` BTreeMap mapping with security mitigations for display.
-    pub fn detect(&self, mode: ExecMode, basic_info: bool) -> BinResult<Features> {
+    pub fn detect(&self, mode: &ExecMode, basic_info: bool) -> BinResult<()> {
         todo!();
     }
 
     /// interfaces the routines within the `BinFormat` given and emit a string that can be
     /// displayed back to the end user.
-    pub fn output(&self) -> BinResult<String> {
+    pub fn output(&self, format: &BinFormat) -> BinResult<String> {
         if let Some(features) = &self.features {
-            self.out_format.dump(features)
+            format.dump(features)
         } else {
             Err(BinError {
                 kind: ErrorKind::DumpError,

@@ -7,9 +7,11 @@ use binsec::detect::{ExecMode, Detector};
 use binsec::format::BinFormat;
 use binsec::errors::BinResult;
 
+use std::path::PathBuf;
+
 fn parse_args<'a>() -> ArgMatches<'a> {
     App::new("binsec")
-        .version("0.3.0")
+        .version("1.0.0")
         .author("ex0dus <ex0dus at codemuch.tech>")
         .about("Swiss Army Knife for Binary (In)security")
         .setting(AppSettings::ArgRequiredElseHelp)
@@ -73,22 +75,28 @@ fn run(args: ArgMatches) -> BinResult<()> {
     // parse out the mode of execution we are using for checks
     let check: ExecMode = match args.value_of("check") {
         Some("all") => ExecMode::All,
-        Some("harden") => ExecMode::Harden,
         Some("kernel") => ExecMode::Kernel,
-        Some("yara") => ExecMode::Yara
+        Some("yara") => ExecMode::Yara,
+        Some("harden") | Some(&_) | None => ExecMode::Harden
     };
 
     // initialize binsec detector
     for binary in binaries {
-        // initialize detector for the binary
-        let mut detector =
-            Detector::new(binary.to_string(), format, None).expect("could not initialize feature detector");
 
-        // given the configuration,
-        if let Ok(d) = detector.detect(check, basic_info) {
-            println!("[{}] {}", "*".cyan(), binary.bold());
-            println!("{}", d.output(&format)?);
-        }
+        // initialize binary path
+        let binpath: PathBuf = PathBuf::from(binary.to_string());
+
+        // initialize detector for the binary
+        let detector = Detector::new(binpath)?;
+
+        // execute a single detection with the specific given check and basic_info flag
+        // TODO: if multiple checks given, exec for each
+        detector.detect(&check, basic_info)?;
+
+        // dump and output results given a format
+        // TODO: deal with if given an output path
+        println!("[{}] {}", "*".cyan(), binary.bold());
+        println!("{}", detector.output(&format)?);
     }
     Ok(())
 }
