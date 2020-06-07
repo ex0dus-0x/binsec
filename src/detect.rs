@@ -26,7 +26,6 @@ pub enum ExecMode {
 /// and executes a check when called.
 pub struct Detector<'a> {
     path: PathBuf,
-    checker: Box<dyn Checker + 'a>,
     features: Option<Features>,
 }
 
@@ -44,9 +43,13 @@ impl<'a> Detector<'a> {
         };
 
         // initialize trait object from given arbitrary file format
-        let checker: Box<dyn Checker + 'a> = match Object::parse(&buffer)? {
-            Object::Elf(elf) => Box::new(elf::ElfChecker::new(elf)),
-            Object::PE(pe) => Box::new(pe::PEChecker::new(pe)),
+        let features = match Object::parse(&buffer)? {
+            Object::Elf(elf) => {
+               let checker = elf::ElfChecker::new(elf);
+            },
+            Object::PE(pe) => { Box::new(pe::PEChecker::new(pe))
+
+            },
             Object::Mach(_mach) => match _mach {
                 Binary(mach) => Box::new(mach::MachChecker::new(mach)),
                 Fat(_) => {
@@ -69,12 +72,6 @@ impl<'a> Detector<'a> {
             checker,
             features: None
         })
-    }
-
-    /// implements the actual detection routine that executes the checks necessary and emits a
-    /// `Features` BTreeMap mapping with security mitigations for display.
-    pub fn detect(&self, mode: &ExecMode, basic_info: bool) -> BinResult<()> {
-        todo!();
     }
 
     /// interfaces the routines within the `BinFormat` given and emit a string that can be
