@@ -25,6 +25,7 @@ pub struct BinInfo {
 }
 
 pub trait Checker {
+
     /// parses out and returns basic binary information for more verbose user output.
     fn bin_info(&self) -> BinInfo;
 

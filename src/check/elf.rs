@@ -6,7 +6,6 @@
 //! * Position-Independent Executable / ASLR
 //! * Use of stack canaries
 //! * (TODO) FORTIFY_SOURCE
-//! * (TODO) SELinux
 //! * (TODO) Runpath
 
 use serde::{Deserialize, Serialize};
@@ -30,21 +29,17 @@ pub enum Relro {
 /// encapsulates an ELF object from libgoblin, in order to parse it and dissect out the necessary
 /// security mitigation features.
 #[derive(Serialize, Deserialize)]
-pub struct ElfChecker;
-
-impl ElfChecker {
-    /// parses and dissects out the necessary components for security feature detection given a
-    /// valid ELF binary.
-    pub fn new(binary: Elf) -> Self {
-        todo!()
-    }
+pub struct ElfChecker {
+	exec_stack: bool,
+    stack_canary: bool,
+    pie: bool,
+    relro: Relro,
 }
 
 impl Checker for ElfChecker {
     /// parses out basic binary information and stores it into the BinInfo mapping for later
     /// consumption and display.
     fn bin_info(&self) -> BinInfo {
-        /*
         let header: header::Header = self.0.header;
         let file_class: &str = match header.e_ident[4] {
             1 => "ELF32",
@@ -57,12 +52,58 @@ impl Checker for ElfChecker {
             file_class: file_class.to_string(),
             bin_type: header::et_to_str(header.e_type).to_string(),
             entry_point: header.e_entry,
-        }*/
-        todo!()
+        }
     }
 
     /// implements the necesary checks for the security mitigations for the specific file format.
     fn harden_check(&self) -> Features {
-        todo!()
+        // non-exec stack: NX bit is set when GNU_STACK is read/write
+        let stack_header: Option<ProgramHeader> = elf
+            .program_headers
+            .iter()
+            .find(|ph| program_header::pt_to_str(ph.p_type) == "PT_GNU_STACK")
+            .cloned();
+
+        if let Some(sh) = stack_header {
+            if sh.p_flags == 6 {
+                self.features.exec_stack = true
+            }
+        }
+
+        // non-exec stack: NX bit is set when GNU_STACK is read/write
+        let stack_header: Option<ProgramHeader> = elf
+            .program_headers
+            .iter()
+            .find(|ph| program_header::pt_to_str(ph.p_type) == "PT_GNU_STACK")
+            .cloned();
+
+        if let Some(sh) = stack_header {
+            if sh.p_flags == 6 {
+                self.features.exec_stack = true
+            }
+        }
+
+		// check for stack canary
+        let strtab = elf.strtab.to_vec().unwrap();
+        let str_sym: Option<_> = strtab
+            .iter()
+            .find(|sym| sym.contains("__stack_chk_fail"))
+            .cloned();
+
+        if str_sym.is_some() {
+            self.features.stack_canary = true;
+        }
+
+        // check for position-independent executable
+        let e_type = elf.header.e_type;
+        match e_type {
+            3 => {
+                self.features.pie = true;
+            }
+            _ => {
+                self.features.pie = false;
+            }
+        }
+		Ok(())
     }
 }
