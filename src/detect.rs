@@ -24,15 +24,16 @@ pub enum ExecMode {
 /// Defines the main interface `Detector` struct, which is instantiated to consume and handle
 /// execution for a single binary input. It detects the checker for the specific binary format,
 /// and executes a check when called.
-pub struct Detector<'a> {
+pub struct Detector {
     path: PathBuf,
-    features: Option<Features>,
+    detector: Box<dyn Checker>,
+    features: Features
 }
 
-impl<'a> Detector<'a> {
+impl Detector {
     /// given a path to a binary and format for output, instantiate the checker for the specific
     /// platform and other attributes necessary for runtime.
-    pub fn new(path: PathBuf) -> BinResult<Self> {
+    pub fn new(path: PathBuf, bin_info: bool) -> BinResult<Self> {
 
         // read from input path and instantiate checker based on binary format
         let mut fd = File::open(path.clone())?;
@@ -43,15 +44,13 @@ impl<'a> Detector<'a> {
         };
 
         // initialize trait object from given arbitrary file format
-        let features = match Object::parse(&buffer)? {
-            Object::Elf(elf) => {
-               let checker = elf::ElfChecker::new(elf);
-            },
-            Object::PE(pe) => { Box::new(pe::PEChecker::new(pe))
-
+        let detector: Box<dyn Checker> = match Object::parse(&buffer)? {
+            Object::Elf(elf) => Box::new(elf::ElfChecker::new(elf)),
+            Object::PE(pe) => {
+                todo!();
             },
             Object::Mach(_mach) => match _mach {
-                Binary(mach) => Box::new(mach::MachChecker::new(mach)),
+                Binary(mach) => todo!(),
                 Fat(_) => {
                     return Err(BinError {
                         kind: ErrorKind::BinaryError,
@@ -69,22 +68,14 @@ impl<'a> Detector<'a> {
 
         Ok(Self {
             path: fs::canonicalize(path)?,
-            checker,
-            features: None
+            detector,
+            features: Features::new()
         })
     }
 
     /// interfaces the routines within the `BinFormat` given and emit a string that can be
     /// displayed back to the end user.
     pub fn output(&self, format: &BinFormat) -> BinResult<String> {
-        if let Some(features) = &self.features {
-            format.dump(features)
-        } else {
-            Err(BinError {
-                kind: ErrorKind::DumpError,
-                msg: "cannot output without calling `detect()` \
-                     and giving it a mode of operation.".to_string()
-            })
-        }
+        todo!()
     }
 }
