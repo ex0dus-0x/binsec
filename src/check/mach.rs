@@ -22,13 +22,3 @@ impl MachChecker {
         todo!()
     }
 }
-
-impl Checker for MachChecker {
-    fn bin_info(&self) -> BinInfo {
-        todo!()
-    }
-
-    fn harden_check(&self) -> Features {
-        todo!()
-    }
-}

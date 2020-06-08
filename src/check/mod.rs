@@ -12,11 +12,10 @@ use std::fmt::{self, Display};
 use serde::{Deserialize, Serialize};
 
 // type alias for detecting features
-pub type Features = BTreeMap<String, BTreeMap<String, bool>>;
+pub type Features = BTreeMap<&'static str, BTreeMap<&'static str, bool>>;
 
-/// struct defining parsed basic information from ELF binary to be outputted and deserialized if
+/// struct defining parsed basic information from any binary to be outputted and deserialized if
 /// user chooses to.
-#[derive(Default, Serialize, Deserialize)]
 pub struct BinInfo {
     pub machine: String,
     pub file_class: String,
@@ -31,17 +30,17 @@ pub trait Checker {
 
     /// defines the function be implemented in order to detect the standard binary hardening
     /// features usually enforced by the compiler.
-    fn harden_check(&self) -> Features;
+    fn harden_check(&mut self) -> ();
 
     /// defines checks that determine security features configured on the kernel that the
     /// binary is running on.
-    fn kernel_check(&self) -> Features {
+    fn kernel_check(&mut self) -> () {
         todo!()
     }
 
     /// runs the custom set of YARA-based rules against the specific binary. This is
     /// default across all formats, as the rules are built to include cases for all formats.
-    fn rule_check(&self) -> Features {
+    fn rule_check(&mut self) -> () {
         todo!()
     }
 }

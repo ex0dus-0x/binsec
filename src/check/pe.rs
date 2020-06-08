@@ -15,19 +15,3 @@ use crate::errors::{BinError, BinResult};
 /// struct defining security features parsed from ELF, and
 /// derives serde de/serialize traits for structured output.
 pub struct PEChecker;
-
-impl PEChecker {
-    pub fn new(pe: PE) -> Self {
-        todo!()
-    }
-}
-
-impl Checker for PEChecker {
-    fn bin_info(&self) -> BinInfo {
-        todo!()
-    }
-
-    fn harden_check(&self) -> Features {
-        todo!()
-    }
-}

@@ -8,8 +8,6 @@
 //! * (TODO) FORTIFY_SOURCE
 //! * (TODO) Runpath
 
-use serde::{Deserialize, Serialize};
-
 use goblin::elf::dynamic::{tag_to_str, Dyn, Dynamic};
 use goblin::elf::{header, program_header, Elf, ProgramHeader};
 use goblin::strtab::Strtab;
@@ -17,9 +15,10 @@ use goblin::strtab::Strtab;
 use crate::check::{BinInfo, Checker, Features};
 use crate::errors::{BinError, BinResult, ErrorKind};
 
+use std::collections::BTreeMap;
+
 /// specifies type of relocation read-only, which defines how dynamic relocations
 /// are resolved as a security feature against GOT/PLT attacks.
-#[derive(Serialize, Deserialize)]
 pub enum Relro {
     FullRelro,
     PartialRelro,
@@ -28,19 +27,27 @@ pub enum Relro {
 
 /// encapsulates an ELF object from libgoblin, in order to parse it and dissect out the necessary
 /// security mitigation features.
-#[derive(Serialize, Deserialize)]
 pub struct ElfChecker {
-	exec_stack: bool,
-    stack_canary: bool,
-    pie: bool,
-    relro: Relro,
+    binary: Elf<'static>,
+    features: Features
 }
 
+impl ElfChecker {
+    pub fn new(elf: Elf<'static>) -> Self {
+        Self {
+            binary: elf,
+            features: Features::new()
+        }
+    }
+}
+
+
 impl Checker for ElfChecker {
+
     /// parses out basic binary information and stores it into the BinInfo mapping for later
     /// consumption and display.
     fn bin_info(&self) -> BinInfo {
-        let header: header::Header = self.0.header;
+        let header: header::Header = self.binary.header;
         let file_class: &str = match header.e_ident[4] {
             1 => "ELF32",
             2 => "ELF64",
@@ -56,9 +63,13 @@ impl Checker for ElfChecker {
     }
 
     /// implements the necesary checks for the security mitigations for the specific file format.
-    fn harden_check(&self) -> Features {
+    fn harden_check(&mut self) {
+
+        // initialize a features mapping for binary hardening checks
+        let mut features: BTreeMap<&'static str, bool> = BTreeMap::new();
+
         // non-exec stack: NX bit is set when GNU_STACK is read/write
-        let stack_header: Option<ProgramHeader> = elf
+        let stack_header: Option<ProgramHeader> = self.binary
             .program_headers
             .iter()
             .find(|ph| program_header::pt_to_str(ph.p_type) == "PT_GNU_STACK")
@@ -66,44 +77,33 @@ impl Checker for ElfChecker {
 
         if let Some(sh) = stack_header {
             if sh.p_flags == 6 {
-                self.features.exec_stack = true
-            }
-        }
-
-        // non-exec stack: NX bit is set when GNU_STACK is read/write
-        let stack_header: Option<ProgramHeader> = elf
-            .program_headers
-            .iter()
-            .find(|ph| program_header::pt_to_str(ph.p_type) == "PT_GNU_STACK")
-            .cloned();
-
-        if let Some(sh) = stack_header {
-            if sh.p_flags == 6 {
-                self.features.exec_stack = true
+                features.insert("Executable Stack", true);
             }
         }
 
 		// check for stack canary
-        let strtab = elf.strtab.to_vec().unwrap();
+        let strtab = self.binary.strtab.to_vec().unwrap();
         let str_sym: Option<_> = strtab
             .iter()
             .find(|sym| sym.contains("__stack_chk_fail"))
             .cloned();
 
         if str_sym.is_some() {
-            self.features.stack_canary = true;
+            features.insert("Stack Canary", true);
         }
 
         // check for position-independent executable
-        let e_type = elf.header.e_type;
+        let e_type = self.binary.header.e_type;
         match e_type {
             3 => {
-                self.features.pie = true;
+                features.insert("Position-Independent Executable", true);
             }
             _ => {
-                self.features.pie = false;
+                features.insert("Position-Independent Executable", false);
             }
         }
-		Ok(())
+
+        // RELRO
+        self.features.insert("Binary Hardening", features);
     }
 }
