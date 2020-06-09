@@ -6,8 +6,12 @@
 //! * JSON
 //! * Protobuf
 
-use crate::check::Features;
 use crate::errors::BinResult;
+use std::collections::BTreeMap;
+
+// aliases a finalized output type for a detector, storing all the checks that
+// were performed and their results.
+pub type Features = BTreeMap<&'static str, BTreeMap<&'static str, bool>>;
 
 /// Defines the output format variants that are supported by binsec. Enforces a uniform `dump()`
 /// function to perform serialization to the respective format when outputting back to user.

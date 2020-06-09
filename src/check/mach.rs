@@ -9,16 +9,10 @@ use serde::{Deserialize, Serialize};
 
 use goblin::mach::MachO;
 
-use crate::check::{BinInfo, Checker, Features};
+use crate::check::{BinFeatures, BinInfo, Checker};
 use crate::errors::{BinError, BinResult};
 
 /// struct defining security features parsed from ELF, and
 /// derives serde de/serialize traits for structured output.
 #[derive(Serialize, Deserialize)]
 pub struct MachChecker;
-
-impl MachChecker {
-    pub fn new(mach: MachO) -> Self {
-        todo!()
-    }
-}
