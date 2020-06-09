@@ -3,9 +3,9 @@
 use clap::{App, AppSettings, Arg, ArgMatches};
 use colored::*;
 
-use binsec::detect::{ExecMode, Detector};
-use binsec::format::BinFormat;
+use binsec::detect::{Detector, ExecMode};
 use binsec::errors::BinResult;
+use binsec::format::BinFormat;
 
 use std::path::PathBuf;
 
@@ -20,13 +20,13 @@ fn parse_args<'a>() -> ArgMatches<'a> {
                 .help("Path to binary or binaries to analyze.")
                 .index(1)
                 .multiple(true)
-                .required(true)
+                .required(true),
         )
         .arg(
             Arg::with_name("check")
                 .help(
                     "Sets the type of check to run (available: all, harden (default), \
-                      kernel, yara)."
+                      kernel, yara).",
                 )
                 .short("check")
                 .long("check")
@@ -34,7 +34,7 @@ fn parse_args<'a>() -> ArgMatches<'a> {
                 .value_name("DETECTOR")
                 .possible_values(&["all", "harden", "kernel", "yara"])
                 .multiple(true)
-                .required(false)
+                .required(false),
         )
         .arg(
             Arg::with_name("info")
@@ -42,7 +42,7 @@ fn parse_args<'a>() -> ArgMatches<'a> {
                 .short("i")
                 .long("info")
                 .takes_value(false)
-                .required(false)
+                .required(false),
         )
         .arg(
             Arg::with_name("out_format")
@@ -52,7 +52,7 @@ fn parse_args<'a>() -> ArgMatches<'a> {
                 .takes_value(true)
                 .value_name("FORMAT")
                 .possible_values(&["normal", "table", "json", "protobuf"])
-                .required(false)
+                .required(false),
         )
         .get_matches()
 }
@@ -77,21 +77,16 @@ fn run(args: ArgMatches) -> BinResult<()> {
         Some("all") => ExecMode::All,
         Some("kernel") => ExecMode::Kernel,
         Some("yara") => ExecMode::Yara,
-        Some("harden") | Some(&_) | None => ExecMode::Harden
+        Some("harden") | Some(&_) | None => ExecMode::Harden,
     };
 
     // initialize binsec detector
     for binary in binaries {
-
         // initialize binary path
         let binpath: PathBuf = PathBuf::from(binary.to_string());
 
         // initialize detector for the binary
-        let detector = Detector::new(binpath)?;
-
-        // execute a single detection with the specific given check and basic_info flag
-        // TODO: if multiple checks given, exec for each
-        detector.detect(&check, basic_info)?;
+        let detector = Detector::detect(binpath, &check, basic_info)?;
 
         // dump and output results given a format
         // TODO: deal with if given an output path

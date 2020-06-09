@@ -9,9 +9,13 @@ use serde::{Deserialize, Serialize};
 
 use goblin::pe::PE;
 
-use crate::check::{BinInfo, Checker, Features};
+use crate::check::{BinFeatures, BinInfo, Checker};
 use crate::errors::{BinError, BinResult};
 
 /// struct defining security features parsed from ELF, and
 /// derives serde de/serialize traits for structured output.
-pub struct PEChecker;
+/// TODO
+pub struct PEChecker {
+    pub authenticode: bool,
+    pub dep: bool,
+}
