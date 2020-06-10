@@ -5,13 +5,14 @@ use std::boxed::Box;
 use std::fs::{self, File};
 use std::io::Read;
 use std::path::PathBuf;
+use std::collections::HashMap;
 
 use goblin::mach::Mach::{Binary, Fat};
 use goblin::Object;
 
-use crate::check::{elf, mach, pe, BinFeatures, BinInfo, Checker};
+use crate::check::{elf, mach, pe, BinFeatures, BinInfo, Checker, FeatureMap};
 use crate::errors::{BinError, BinResult, ErrorKind};
-use crate::format::{BinFormat, Features};
+use crate::format::{BinFormat};
 
 /// defines the different execution modes that can be utilized for mitigation detection.
 pub enum ExecMode {
@@ -25,7 +26,6 @@ pub enum ExecMode {
 /// execution for a single binary input. It detects the checker for the specific binary format,
 /// and executes a check when called.
 pub struct Detector {
-    path: PathBuf,
     bin_info: Option<Box<dyn BinInfo>>,
     harden_features: Box<dyn BinFeatures>,
 }
@@ -35,12 +35,7 @@ impl Detector {
     /// output and consumption.
     pub fn detect(path: PathBuf, exec_mode: &ExecMode, _bin_info: bool) -> BinResult<Self> {
         // read from input path and instantiate checker based on binary format
-        let mut fd = File::open(path.clone())?;
-        let buffer = {
-            let mut v = Vec::new();
-            fd.read_exact(&mut v)?;
-            v
-        };
+        let buffer = fs::read(path.as_path())?;
 
         // do format-specific hardening check by default
         let (bin_info, harden_features): (Option<Box<dyn BinInfo>>, Box<dyn BinFeatures>) =
@@ -74,7 +69,6 @@ impl Detector {
         // TODO: handle checks for other stuff
 
         Ok(Self {
-            path,
             bin_info,
             harden_features,
         })
@@ -83,6 +77,19 @@ impl Detector {
     /// interfaces the routines within the `BinFormat` given and emit a string that can be
     /// displayed back to the end user.
     pub fn output(&self, format: &BinFormat) -> BinResult<String> {
-        todo!()
+
+        // aggregates all of the features that were parsed out as a result of the execution mode
+        let mut features: HashMap<&str, FeatureMap> = HashMap::new();
+
+        // append basic binary information first if available
+        if let Some(info) = &self.bin_info {
+            features.insert("Basic Information", info.dump_mapping());
+        }
+
+        // append basic hardening checks for the binary format
+        features.insert("Hardening Checks", self.harden_features.dump_mapping());
+
+        // return output result
+        format.dump(&features)
     }
 }
