@@ -68,7 +68,6 @@ fn run(args: ArgMatches) -> BinResult<()> {
     let format: BinFormat = match args.value_of("out_format") {
         Some("json") => BinFormat::Json,
         Some("protobuf") => BinFormat::Protobuf,
-        Some("table") => BinFormat::Table,
         Some("normal") | Some(&_) | None => BinFormat::Normal,
     };
 
