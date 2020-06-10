@@ -8,21 +8,19 @@
 //! * (TODO) FORTIFY_SOURCE
 //! * (TODO) Runpath
 
-use goblin::elf::dynamic::{tag_to_str, Dyn, Dynamic};
+use goblin::elf::dynamic::{tag_to_str, Dyn};
 use goblin::elf::{header, program_header, Elf, ProgramHeader};
-use goblin::strtab::Strtab;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::check::{BinFeatures, BinInfo, Checker, FeatureMap};
-use crate::errors::{BinError, BinResult, ErrorKind};
 
 use std::boxed::Box;
 
 /// struct defining parsed basic information from any binary to be outputted and deserialized if
 /// user chooses to.
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Default)]
 pub struct ElfInfo {
     pub machine: String,
     pub file_class: String,
@@ -83,7 +81,10 @@ impl BinFeatures for ElfChecker {
         features.insert("Executable Stack (NX Bit)", Value::Bool(self.exec_stack));
         features.insert("Stack Canaries", Value::Bool(self.stack_canary));
         features.insert("Position-Independent Executable", Value::Bool(self.pie));
-        features.insert("Read-Only Relocatables (RELRO)", Value::String(self.relro.to_string()));
+        features.insert(
+            "Read-Only Relocatables (RELRO)",
+            Value::String(self.relro.to_string()),
+        );
         features
     }
 }
@@ -143,9 +144,10 @@ impl Checker for Elf<'_> {
 
                     if !dyn_seg.is_none() {
                         relro = Relro::FullRelro;
+                    } else {
+                        relro = Relro::PartialRelro;
                     }
                 }
-                relro = Relro::PartialRelro;
             }
             None => {
                 relro = Relro::NoRelro;

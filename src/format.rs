@@ -6,47 +6,26 @@
 //! * JSON
 //! * Protobuf
 
-use crate::errors::BinResult;
 use crate::check::FeatureMap;
+use crate::errors::BinResult;
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
-pub type Features = Hashmap<&'static str, FeatureMap>;
+pub type Features = BTreeMap<&'static str, FeatureMap>;
 
 /// Defines the output format variants that are supported by binsec. Enforces a uniform `dump()`
 /// function to perform serialization to the respective format when outputting back to user.
 pub enum BinFormat {
     Normal,
-    Table,
     Json,
     Protobuf,
 }
 
 impl BinFormat {
-    /// helper for constructing a normal output string for display given a Features `BTreeMap`.
+    /// helper for constructing a table output string for display given a Features `BTreeMap`.
     #[inline]
     fn make_normal(input: &Features) -> String {
         use colored::*;
-
-        let mut out_string: String = String::new();
-        for (key, features) in input.iter() {
-            // append title with newline
-            out_string.push_str("\n");
-            out_string.push_str(&key.underline());
-            out_string.push_str("\n\n");
-
-            // print feature name and config with equidistance
-            for (name, feature) in features {
-                let feature_line: String = format!("{}{1:>6$}{}\n", name, feature);
-                out_string.push_str(feature_line.as_str());
-            }
-        }
-        out_string
-    }
-
-    /// helper for constructing a table output string for display given a Features `BTreeMap`.
-    #[inline]
-    fn make_table(input: &Features) -> String {
         use term_table::{
             row::Row,
             table_cell::{Alignment, TableCell},
@@ -62,16 +41,16 @@ impl BinFormat {
             // initialize a header row for each key
             // TODO: underline header
             basic_table.add_row(Row::new(vec![TableCell::new_with_alignment(
-                key,
+                key.bold().underline(),
                 2,
                 Alignment::Center,
             )]));
 
             // add additional rows for each feature and its name
-            for (name, config) in features {
+            for (name, feature) in features {
                 basic_table.add_row(Row::new(vec![
                     TableCell::new(name),
-                    TableCell::new_with_alignment(config, 1, Alignment::Right),
+                    TableCell::new_with_alignment(feature, 1, Alignment::Right),
                 ]));
             }
         }
@@ -88,7 +67,6 @@ impl BinFormat {
     pub fn dump(&self, input: &Features) -> BinResult<String> {
         match self {
             BinFormat::Normal => Ok(BinFormat::make_normal(input)),
-            BinFormat::Table => Ok(BinFormat::make_table(input)),
             BinFormat::Protobuf => Ok(BinFormat::make_protobuf(input)),
             BinFormat::Json => Ok(serde_json::to_string_pretty(&input).unwrap()),
         }

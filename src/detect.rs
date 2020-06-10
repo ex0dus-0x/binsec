@@ -2,17 +2,16 @@
 //! inputs. Should be used to detect format and security mitigations for a singular binary.
 
 use std::boxed::Box;
-use std::fs::{self, File};
-use std::io::Read;
+use std::collections::BTreeMap;
+use std::fs;
 use std::path::PathBuf;
-use std::collections::HashMap;
 
 use goblin::mach::Mach::{Binary, Fat};
 use goblin::Object;
 
-use crate::check::{elf, mach, pe, BinFeatures, BinInfo, Checker, FeatureMap};
+use crate::check::{BinFeatures, BinInfo, Checker, FeatureMap};
 use crate::errors::{BinError, BinResult, ErrorKind};
-use crate::format::{BinFormat};
+use crate::format::BinFormat;
 
 /// defines the different execution modes that can be utilized for mitigation detection.
 pub enum ExecMode {
@@ -77,9 +76,8 @@ impl Detector {
     /// interfaces the routines within the `BinFormat` given and emit a string that can be
     /// displayed back to the end user.
     pub fn output(&self, format: &BinFormat) -> BinResult<String> {
-
         // aggregates all of the features that were parsed out as a result of the execution mode
-        let mut features: HashMap<&str, FeatureMap> = HashMap::new();
+        let mut features: BTreeMap<&str, FeatureMap> = BTreeMap::new();
 
         // append basic binary information first if available
         if let Some(info) = &self.bin_info {

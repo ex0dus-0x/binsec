@@ -6,14 +6,12 @@ pub mod elf;
 pub mod mach;
 pub mod pe;
 
-use serde::{Deserialize, Serialize};
-
 use std::boxed::Box;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 // aliases a finalized output type for a detector, storing all the checks that
 // were performed and their results.
-pub type FeatureMap = HashMap<&'static str, serde_json::Value>;
+pub type FeatureMap = BTreeMap<&'static str, serde_json::Value>;
 
 /// trait to genericize basic information structs for binary formats.
 pub trait BinInfo {
