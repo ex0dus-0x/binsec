@@ -7,11 +7,11 @@
 //! * Protobuf
 
 use crate::errors::BinResult;
-use std::collections::BTreeMap;
+use crate::check::FeatureMap;
 
-// aliases a finalized output type for a detector, storing all the checks that
-// were performed and their results.
-pub type Features = BTreeMap<&'static str, BTreeMap<&'static str, bool>>;
+use std::collections::HashMap;
+
+pub type Features = Hashmap<&'static str, FeatureMap>;
 
 /// Defines the output format variants that are supported by binsec. Enforces a uniform `dump()`
 /// function to perform serialization to the respective format when outputting back to user.
@@ -26,15 +26,18 @@ impl BinFormat {
     /// helper for constructing a normal output string for display given a Features `BTreeMap`.
     #[inline]
     fn make_normal(input: &Features) -> String {
+        use colored::*;
+
         let mut out_string: String = String::new();
         for (key, features) in input.iter() {
             // append title with newline
-            out_string.push_str(key);
             out_string.push_str("\n");
+            out_string.push_str(&key.underline());
+            out_string.push_str("\n\n");
 
             // print feature name and config with equidistance
-            for (name, config) in features {
-                let feature_line: String = format!("{}\t\t{}", name, config);
+            for (name, feature) in features {
+                let feature_line: String = format!("{}{1:>6$}{}\n", name, feature);
                 out_string.push_str(feature_line.as_str());
             }
         }

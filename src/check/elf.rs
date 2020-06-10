@@ -13,8 +13,9 @@ use goblin::elf::{header, program_header, Elf, ProgramHeader};
 use goblin::strtab::Strtab;
 
 use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 
-use crate::check::{BinFeatures, BinInfo, Checker};
+use crate::check::{BinFeatures, BinInfo, Checker, FeatureMap};
 use crate::errors::{BinError, BinResult, ErrorKind};
 
 use std::boxed::Box;
@@ -29,8 +30,38 @@ pub struct ElfInfo {
     pub entry_point: u64,
 }
 
-// extend with empty trait to enable generic return in Checker trait implementation
-impl BinInfo for ElfInfo {}
+// extend with trait to enable generic return in Checker trait implementation
+impl BinInfo for ElfInfo {
+    /// converts the checked security mitigations into an associative container for output
+    /// consumption with a specific output format
+    fn dump_mapping(&self) -> FeatureMap {
+        let mut features: FeatureMap = FeatureMap::new();
+        features.insert("Architecture", json!(self.machine));
+        features.insert("File Class", json!(self.file_class));
+        features.insert("Binary Type", json!(self.bin_type));
+        features.insert("Entry Point Address", json!(self.entry_point));
+        features
+    }
+}
+
+/// specifies type of relocation read-only, which defines how dynamic relocations
+/// are resolved as a security feature against GOT/PLT attacks.
+#[derive(Serialize, Deserialize, Debug)]
+pub enum Relro {
+    FullRelro,
+    PartialRelro,
+    NoRelro,
+}
+
+impl ToString for Relro {
+    fn to_string(&self) -> String {
+        match self {
+            Relro::FullRelro => "Full RELRO".to_string(),
+            Relro::PartialRelro => "Partial RELRO".to_string(),
+            Relro::NoRelro => "No RELRO".to_string(),
+        }
+    }
+}
 
 /// encapsulates an ELF object from libgoblin, in order to parse it and dissect out the necessary
 /// security mitigation features.
@@ -42,17 +73,20 @@ struct ElfChecker {
     pub relro: Relro,
 }
 
-/// specifies type of relocation read-only, which defines how dynamic relocations
-/// are resolved as a security feature against GOT/PLT attacks.
-#[derive(Serialize, Deserialize)]
-pub enum Relro {
-    FullRelro,
-    PartialRelro,
-    NoRelro,
+// extend with trait to enable generic return in Checker trait implementation, and provide
+// facilities for dumping out as a genericized FeatureMap
+impl BinFeatures for ElfChecker {
+    /// converts the checked security mitigations into an associative container for output
+    /// consumption with a specific output format
+    fn dump_mapping(&self) -> FeatureMap {
+        let mut features: FeatureMap = FeatureMap::new();
+        features.insert("Executable Stack (NX Bit)", Value::Bool(self.exec_stack));
+        features.insert("Stack Canaries", Value::Bool(self.stack_canary));
+        features.insert("Position-Independent Executable", Value::Bool(self.pie));
+        features.insert("Read-Only Relocatables (RELRO)", Value::String(self.relro.to_string()));
+        features
+    }
 }
-
-// extend with empty trait to enable generic return in Checker trait implementation
-impl BinFeatures for ElfChecker {}
 
 impl Checker for Elf<'_> {
     /// parses out basic binary information and stores it into the BinInfo mapping for later
