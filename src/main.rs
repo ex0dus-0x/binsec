@@ -89,7 +89,7 @@ fn run(args: ArgMatches) -> BinResult<()> {
 
         // dump and output results given a format
         // TODO: deal with if given an output path
-        println!("\n[{}] {}", "*".cyan(), binary.bold());
+        println!("\n[{}] {}\n", "*".cyan(), binary.bold());
         println!("{}", detector.output(&format)?);
     }
     Ok(())
