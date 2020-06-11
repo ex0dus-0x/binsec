@@ -11,7 +11,6 @@
 use goblin::elf::dynamic::{tag_to_str, Dyn};
 use goblin::elf::{header, program_header, Elf, ProgramHeader};
 
-use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::check::{BinFeatures, BinInfo, Checker, FeatureMap};
@@ -44,7 +43,6 @@ impl BinInfo for ElfInfo {
 
 /// specifies type of relocation read-only, which defines how dynamic relocations
 /// are resolved as a security feature against GOT/PLT attacks.
-#[derive(Serialize, Deserialize, Debug)]
 pub enum Relro {
     FullRelro,
     PartialRelro,
@@ -63,7 +61,6 @@ impl ToString for Relro {
 
 /// encapsulates an ELF object from libgoblin, in order to parse it and dissect out the necessary
 /// security mitigation features.
-#[derive(Serialize, Deserialize)]
 struct ElfChecker {
     pub exec_stack: bool,
     pub stack_canary: bool,
