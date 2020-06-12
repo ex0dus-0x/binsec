@@ -1,17 +1,18 @@
 //! Implements the main interface struct necessary in order to consume, parse and detect binary
 //! inputs. Should be used to detect format and security mitigations for a singular binary.
 
-use std::boxed::Box;
-use std::collections::BTreeMap;
-use std::fs;
-use std::path::PathBuf;
+use crate::check::{BinFeatures, Checker};
+use crate::errors::{BinError, BinResult, ErrorKind};
+use crate::format::BinFormat;
 
 use goblin::mach::Mach::{Binary, Fat};
 use goblin::Object;
 
-use crate::check::{BinFeatures, BinInfo, Checker, FeatureMap};
-use crate::errors::{BinError, BinResult, ErrorKind};
-use crate::format::BinFormat;
+use serde::{Deserialize, Serialize};
+
+use std::boxed::Box;
+use std::fs;
+use std::path::PathBuf;
 
 /// defines the different execution modes that can be utilized for mitigation detection.
 pub enum ExecMode {
@@ -22,11 +23,20 @@ pub enum ExecMode {
 }
 
 /// Defines the main interface `Detector` struct, which is instantiated to consume and handle
-/// execution for a single binary input. It detects the checker for the specific binary format,
-/// and executes a check when called.
+/// storing all internally parsed checks in a genericized manner, such that it is much easier
+/// for serialization and output.
+#[derive(Serialize, Deserialize)]
 pub struct Detector {
-    bin_info: Option<Box<dyn BinInfo>>,
-    harden_features: Box<dyn BinFeatures>,
+    #[serde(skip_serializing_if = "Option::is_none()")]
+    pub bin_info: Option<Box<dyn BinFeatures>>,
+
+    #[serde(skip_serializing_if = "Option::is_none()")]
+    pub kernel_features: Option<Box<dyn BinFeatures>>,
+
+    #[serde(skip_serializing_if = "Option::is_none()")]
+    pub rule_features: Option<Box<dyn BinFeatures>>,
+
+    pub harden_features: Box<dyn BinFeatures>,
 }
 
 impl Detector {
@@ -37,11 +47,11 @@ impl Detector {
         let buffer = fs::read(path.as_path())?;
 
         // do format-specific hardening check by default
-        let (bin_info, harden_features): (Option<Box<dyn BinInfo>>, Box<dyn BinFeatures>) =
+        let (bin_info, harden_features): (Option<Box<dyn BinFeatures>>, Box<dyn BinFeatures>) =
             match Object::parse(&buffer)? {
                 Object::Elf(elf) => {
                     // get basic binary information if argument is specified
-                    let bin_info: Option<Box<dyn BinInfo>> = match _bin_info {
+                    let bin_info: Option<Box<dyn BinFeatures>> = match _bin_info {
                         true => Some(elf.bin_info()),
                         false => None,
                     };
@@ -73,21 +83,16 @@ impl Detector {
         })
     }
 
+    /// executes a kernel-specific check upon the current system that's performing the detection,
+    /// and stores it in state for later output.
+    #[inline]
+    fn kernel_check() -> BinResult<dyn BinFeatures> {
+        todo!()
+    }
+
     /// interfaces the routines within the `BinFormat` given and emit a string that can be
     /// displayed back to the end user.
-    pub fn output(&self, format: &BinFormat) -> BinResult<String> {
-        // aggregates all of the features that were parsed out as a result of the execution mode
-        let mut features: BTreeMap<&str, FeatureMap> = BTreeMap::new();
-
-        // append basic binary information first if available
-        if let Some(info) = &self.bin_info {
-            features.insert("Basic Information", info.dump_mapping());
-        }
-
-        // append basic hardening checks for the binary format
-        features.insert("Hardening Checks", self.harden_features.dump_mapping());
-
-        // return output result
-        format.dump(&features)
+    pub fn output(self, format: &BinFormat) -> BinResult<String> {
+        format.dump(self)
     }
 }
