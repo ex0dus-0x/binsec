@@ -1,9 +1,9 @@
 //! Defines the `Elf` security mitigation detector. Consumes an
 //! ELF binary, parses it, and checks for the following features:
 //!
-//! * NX (Non-eXecutable bit)
+//! * NX (Non-eXecutable bit) stack
 //! * Full/Partial RELRO
-//! * Position-Independent Executable / ASLR
+//! * Position-Independent Executable
 //! * Use of stack canaries
 //! * (TODO) FORTIFY_SOURCE
 //! * (TODO) Runpath
@@ -11,15 +11,15 @@
 use goblin::elf::dynamic::{tag_to_str, Dyn};
 use goblin::elf::{header, program_header, Elf, ProgramHeader};
 
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use crate::check::{BinFeatures, BinInfo, Checker, FeatureMap};
+use crate::check::{BinFeatures, Checker, FeatureMap};
 
 use std::boxed::Box;
 
-/// struct defining parsed basic information from any binary to be outputted and deserialized if
-/// user chooses to.
-#[derive(Default)]
+/// defines basic information parsed out from an ELF binary
+#[derive(Deserialize, Serialize, Default)]
 pub struct ElfInfo {
     pub machine: String,
     pub file_class: String,
@@ -28,9 +28,10 @@ pub struct ElfInfo {
 }
 
 // extend with trait to enable generic return in Checker trait implementation
-impl BinInfo for ElfInfo {
+#[typetag::serde]
+impl BinFeatures for ElfInfo {
     /// converts the checked security mitigations into an associative container for output
-    /// consumption with a specific output format
+    /// consumption with a specific output format.
     fn dump_mapping(&self) -> FeatureMap {
         let mut features: FeatureMap = FeatureMap::new();
         features.insert("Architecture", json!(self.machine));
@@ -43,6 +44,7 @@ impl BinInfo for ElfInfo {
 
 /// specifies type of relocation read-only, which defines how dynamic relocations
 /// are resolved as a security feature against GOT/PLT attacks.
+#[derive(Deserialize, Serialize)]
 pub enum Relro {
     FullRelro,
     PartialRelro,
@@ -61,6 +63,7 @@ impl ToString for Relro {
 
 /// encapsulates an ELF object from libgoblin, in order to parse it and dissect out the necessary
 /// security mitigation features.
+#[derive(Deserialize, Serialize)]
 struct ElfChecker {
     pub exec_stack: bool,
     pub stack_canary: bool,
@@ -70,6 +73,7 @@ struct ElfChecker {
 
 // extend with trait to enable generic return in Checker trait implementation, and provide
 // facilities for dumping out as a genericized FeatureMap
+#[typetag::serde]
 impl BinFeatures for ElfChecker {
     /// converts the checked security mitigations into an associative container for output
     /// consumption with a specific output format
@@ -87,9 +91,8 @@ impl BinFeatures for ElfChecker {
 }
 
 impl Checker for Elf<'_> {
-    /// parses out basic binary information and stores it into the BinInfo mapping for later
-    /// consumption and display.
-    fn bin_info(&self) -> Box<dyn BinInfo> {
+    /// parses out basic binary information and stores for consumption and output.
+    fn bin_info(&self) -> Box<dyn BinFeatures> {
         let header: header::Header = self.header;
         let file_class: &str = match header.e_ident[4] {
             1 => "ELF32",
@@ -129,7 +132,7 @@ impl Checker for Elf<'_> {
         // TODO: make functional or get rid of nested bullshit
         let mut relro: Relro = Relro::NoRelro;
         match relro_header {
-            Some(rh) => {
+            Some(_rh) => {
                 // check for full/partial RELRO support by checking dynamic section for DT_BIND_NOW flag.
                 // DT_BIND_NOW takes precedence over lazy binding and processes relocations before actual execution.
                 if let Some(segs) = &self.dynamic {

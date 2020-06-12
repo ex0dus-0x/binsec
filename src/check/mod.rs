@@ -13,15 +13,9 @@ use std::collections::BTreeMap;
 // were performed and their results.
 pub type FeatureMap = BTreeMap<&'static str, serde_json::Value>;
 
-/// trait to genericize basic information structs for binary formats.
-pub trait BinInfo {
-    /// generate a mapping given a checked set of features stored
-    /// WIP: procedural macro for automatically convering structs to map types
-    fn dump_mapping(&self) -> FeatureMap;
-}
-
 /// trait to genericize associative structs that can be de/serialized, holding features
 /// for the specific format.
+#[typetag::serde(tag = "type")]
 pub trait BinFeatures {
     /// generate a mapping given a checked set of features stored
     /// WIP: procedural macro for automatically convering structs to map types
@@ -32,7 +26,7 @@ pub trait BinFeatures {
 /// security mitigations either through traditional hardening techniques.
 pub trait Checker {
     /// parses out and returns basic binary information for more verbose user output.
-    fn bin_info(&self) -> Box<dyn BinInfo>;
+    fn bin_info(&self) -> Box<dyn BinFeatures>;
 
     /// defines the function be implemented in order to detect the standard binary hardening
     /// features usually enforced by the compiler.
