@@ -18,7 +18,7 @@ edition = "2018"
 clap = "2.33.0"
 term-table = "1.1.0"
 colored = "1.8"
-goblin = "0.2.0"
+goblin = "0.2.3"
 typetag = "0.1"
 
 toml = "0.5.6"
