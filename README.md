@@ -13,46 +13,132 @@
 [docs-badge]: https://docs.rs/binsec/badge.svg
 [docs.rs]: https://docs.rs/binsec
 
-static binary detection tool for Linux security features
+Swiss Army Knife for Binary (In)security
 
-## intro
+## Roadmap to 1.0.0 Release
 
-__binsec__ is a utility that statically checks ELF binaries for Linux security features. It is a clone of the [checksec.sh](https://github.com/slimm609/checksec.sh) project, but written in Rust.
+The current upstream crate is `0.2.0`, while this repository is on its way to `1.0.0`. Here's what's left:
 
-## features
+* [ ] Finalize checks for PE and MachO
+* [ ] Add CSV/XML serialization
+* [ ] Kernel and YARA rules
+* [ ] UX improvements
 
-* __Checks for__: RELRO, NX, PIE, stack canary
-* __Fast__: libgoblin is used as backend for low-level ELF parsing
-* __Convenient__: deserialization and library module support
+## Introduction
 
-## usage
+__binsec__ is a portable and cross-platform utility for detecting security mitigations across ELF, PE and mach-O executable formats.
+While it is able to detect the usual binary hardening features across executables, it can also check for more advanced security enhacenements, from kernel configurations to its own subset of YARA-based "adversarial" checks.
 
-To build and install:
+## Features
+
+* Robust checks for a wide variety of security mitigations across ELF/PE/Mach-O binaries.
+* Backends [libgoblin](https://github.com/m4b/goblin) for efficient and cross-platform binary parsing.
+* Can generate serializable outputs for JSON and TOML formats for storage/logging consumption.
+
+## Use Cases
+
+* Use `binsec` as part of your security tooling when conducting black-box static analysis!
+* Incorporate `binsec` as part of a malware detection pipeline to analyze mass amounts of executable samples!
+* CTFs and wargames!
+
+## How to Use
+
+### Installation
+
+__binsec__ can be installed simply through the `cargo` package manager:
 
 ```
 $ cargo install binsec
 ```
 
-To check for security features:
+You can now use `binsec` as a CLI application, and even interface the crate as a library in your own applications!
+
+### Usage
+
+When running __binsec__ by default, the standard binary `harden` check will be deployed automatically after checking the
+binary format being used:
 
 ```
-$ binsec ./my_binary
+$ binsec ./out.elf
+
+[*] ./out.elf
+
+              Binary Hardening Checks
+
+ Executable Stack (NX Bit)                    true
+
+ FORTIFY_SOURCE                              false
+
+ Position-Independent Executable              true
+
+ Read-Only Relocatables (RELRO)       "Full RELRO"
+
+ Stack Canary                                false
 ```
 
-To deserialize to JSON:
+You can specify more than one binaries, and a detector will be used on each one:
 
 ```
-$ binsec ./my_binary -f=json
+$ binsec ./another.mach ./out.elf
+
+[*] ./another.mach
+
+...
+
+[*] ./out.elf
+
+...
 ```
 
-Output other binary information:
+You can also include `--info`, if you would like some basic verbose details to be included alongside the analysis:
 
 ```
-$ binsec --info ./my_binary
+$ binsec --info ./file
+
+                 Basic Information
+
+ Architecture                             "X86_64"
+
+ Binary Type                                 "DYN"
+
+ Entry Point Address                        721600
+
+ File Class                                "ELF64"
 ```
 
-Note that you do not need to supply any arguments/flags to `./my_binary`, as __binsec__ is a _statically_-based detection tool.
+You can also export this information through serialization, either as a JSON or TOML file:
 
-## license
+```
+$ binsec --format=json ./file
 
-[mit](https://codemuch.tech/license.txt)
+[*] file
+
+{
+  "harden_features": {
+    "type": "ElfChecker",
+    "exec_stack": true,
+    "stack_canary": false,
+    "fortify_source": false,
+    "pie": true,
+    "relro": "FullRelro",
+    "runpath": []
+  }
+}
+```
+
+## Contributing
+
+This is still a work-in-progress! You can contribute by catching issues and bugs
+and submitting them through the [issue tracker](https://github.com/ex0dus-0x/binsec/issues) or
+making a pull request!
+
+## Other Projects:
+
+* hardening-check
+* checksec.sh
+* winchecksec
+* pwntools / checksec
+
+## License
+
+[MIT License](https://codemuch.tech/license.txt)
