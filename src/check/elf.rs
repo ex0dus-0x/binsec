@@ -2,17 +2,17 @@
 //! ELF binary, parses it, and checks for the following features:
 //!
 //! * NX (Non-eXecutable bit) stack
-//! * Full/Partial RELRO
+//! * Stack Canaries
+//! * FORTIFY_SOURCE
 //! * Position-Independent Executable
-//! * Use of stack canaries
-//! * (TODO) FORTIFY_SOURCE
-//! * (TODO) Runpath
+//! * Full/Partial RELRO
+//! * Runpath
 
 use goblin::elf::dynamic::{tag_to_str, Dyn};
 use goblin::elf::{header, program_header, Elf, ProgramHeader};
 
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::json;
 
 use crate::check::{BinFeatures, Checker, FeatureMap};
 
@@ -67,8 +67,10 @@ impl ToString for Relro {
 struct ElfChecker {
     pub exec_stack: bool,
     pub stack_canary: bool,
+    pub fortify_source: bool,
     pub pie: bool,
     pub relro: Relro,
+    pub runpath: Vec<String>,
 }
 
 // extend with trait to enable generic return in Checker trait implementation, and provide
@@ -79,12 +81,13 @@ impl BinFeatures for ElfChecker {
     /// consumption with a specific output format
     fn dump_mapping(&self) -> FeatureMap {
         let mut features: FeatureMap = FeatureMap::new();
-        features.insert("Executable Stack (NX Bit)", Value::Bool(self.exec_stack));
-        features.insert("Stack Canaries", Value::Bool(self.stack_canary));
-        features.insert("Position-Independent Executable", Value::Bool(self.pie));
+        features.insert("Executable Stack (NX Bit)", json!(self.exec_stack));
+        features.insert("Stack Canary", json!(self.stack_canary));
+        features.insert("FORTIFY_SOURCE", json!(self.fortify_source));
+        features.insert("Position-Independent Executable", json!(self.pie));
         features.insert(
             "Read-Only Relocatables (RELRO)",
-            Value::String(self.relro.to_string()),
+            json!(self.relro.to_string()),
         );
         features
     }
@@ -110,16 +113,36 @@ impl Checker for Elf<'_> {
 
     /// implements the necesary checks for the security mitigations for the specific file format.
     fn harden_check(&self) -> Box<dyn BinFeatures> {
-        // non-exec stack: NX bit is set when GNU_STACK is read/write
-        let stack_header: Option<ProgramHeader> = self
+        // check for executable stack through program headers
+        let exec_stack: bool = self
             .program_headers
             .iter()
-            .find(|ph| program_header::pt_to_str(ph.p_type) == "PT_GNU_STACK")
-            .cloned();
+            .any(|ph| program_header::pt_to_str(ph.p_type) == "PT_GNU_STACK" && ph.p_flags == 6);
 
-        let exec_stack: bool = match stack_header {
-            Some(sh) => sh.p_flags == 6,
-            None => false,
+        // check for stack canary
+        let stack_canary: bool = self
+            .dynsyms
+            .iter()
+            .filter_map(|sym| self.dynstrtab.get(sym.st_name))
+            .any(|name| match name {
+                Ok(e) => (e == "__stack_chk_fail"),
+                _ => false,
+            });
+
+        // check for FORTIFY_SOURCE calls
+        let fortify_source: bool = self
+            .dynsyms
+            .iter()
+            .filter_map(|sym| self.dynstrtab.get(sym.st_name))
+            .any(|name| match name {
+                Ok(e) => e.ends_with("_chk"),
+                _ => false,
+            });
+
+        // check for position-independent executable
+        let pie: bool = match self.header.e_type {
+            3 => true,
+            _ => false,
         };
 
         // check for RELRO
@@ -142,7 +165,7 @@ impl Checker for Elf<'_> {
                         .find(|tag| tag_to_str(tag.d_tag) == "DT_BIND_NOW")
                         .cloned();
 
-                    if !dyn_seg.is_none() {
+                    if dyn_seg.is_some() {
                         relro = Relro::FullRelro;
                     } else {
                         relro = Relro::PartialRelro;
@@ -154,29 +177,13 @@ impl Checker for Elf<'_> {
             }
         };
 
-        // check for stack canary
-        let strtab = self.strtab.to_vec().unwrap();
-        let str_sym: Option<_> = strtab
-            .iter()
-            .find(|sym| sym.contains("__stack_chk_fail"))
-            .cloned();
-
-        let stack_canary: bool = str_sym.is_some();
-
-        // check for position-independent executable
-        let pie: bool = {
-            let e_type = self.header.e_type;
-            match e_type {
-                3 => true,
-                _ => false,
-            }
-        };
-
         Box::new(ElfChecker {
             exec_stack,
             stack_canary,
+            fortify_source,
             pie,
             relro,
+            runpath: Vec::new(),
         })
     }
 }

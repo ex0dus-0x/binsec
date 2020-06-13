@@ -51,7 +51,7 @@ fn parse_args<'a>() -> ArgMatches<'a> {
                 .long("format")
                 .takes_value(true)
                 .value_name("FORMAT")
-                .possible_values(&["normal", "table", "json", "protobuf"])
+                .possible_values(&["normal", "json", "toml"])
                 .required(false),
         )
         // TODO: output path
@@ -68,7 +68,6 @@ fn run(args: ArgMatches) -> BinResult<()> {
     // render and output based on out_format
     let format: BinFormat = match args.value_of("out_format") {
         Some("json") => BinFormat::Json,
-        Some("csv") => BinFormat::Csv,
         Some("toml") => BinFormat::Toml,
         Some("normal") | Some(&_) | None => BinFormat::Normal,
     };

@@ -3,7 +3,7 @@
 //!
 //! * Normal output
 //! * JSON
-//! * CSV
+//! * TOML
 
 use crate::check::FeatureMap;
 use crate::detect::Detector;
@@ -16,14 +16,11 @@ use term_table::{
 };
 use term_table::{Table, TableStyle};
 
-use std::boxed::Box;
-
 /// Defines the output format variants that are supported by binsec. Enforces a uniform `dump()`
 /// function to perform serialization to the respective format when outputting back to user.
 pub enum BinFormat {
     Normal,
     Json,
-    Csv,
     Toml,
 }
 
@@ -71,8 +68,7 @@ impl BinFormat {
     pub fn dump(&self, input: Detector) -> BinResult<String> {
         match self {
             BinFormat::Normal => Ok(BinFormat::make_normal(&input)),
-            BinFormat::Csv => todo!(),
-            BinFormat::Toml => todo!(),
+            BinFormat::Toml => Ok(toml::to_string(&input).unwrap()),
             BinFormat::Json => Ok(serde_json::to_string_pretty(&input).unwrap()),
         }
     }
