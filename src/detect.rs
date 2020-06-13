@@ -1,5 +1,6 @@
 //! Implements the main interface struct necessary in order to consume, parse and detect binary
 //! inputs. Should be used to detect format and security mitigations for a singular binary.
+#![allow(clippy::match_bool)]
 
 use crate::check::{BinFeatures, Checker};
 use crate::errors::{BinError, BinResult, ErrorKind};
