@@ -48,6 +48,7 @@ pub struct MachChecker {
     pub nx_stack: bool,
     pub nx_heap: bool,
     pub stack_canary: bool,
+    pub restrict: bool,
 }
 
 #[typetag::serde]
@@ -56,7 +57,8 @@ impl BinFeatures for MachChecker {
         let mut features: FeatureMap = FeatureMap::new();
         features.insert("Non-Executable Stack", json!(self.nx_stack));
         features.insert("Non-Executable Heap", json!(self.nx_heap));
-        features.insert("Stack Canary Usage", json!(self.stack_canary));
+        features.insert("Stack Canary", json!(self.stack_canary));
+        features.insert("Restrict Code Injection", json!(self.restrict));
         features
     }
 }
@@ -106,10 +108,24 @@ impl Checker for MachO<'_> {
             Err(_) => false,
         };
 
+        // check for __RESTRICT section for stopping dynlib injection
+        let restrict: bool = self
+            .segments
+            .iter()
+            .filter_map(|s| {
+                if let Ok(name) = s.name() {
+                    Some(name.to_string())
+                } else {
+                    None
+                }
+            })
+            .any(|s| s.to_lowercase() == "__restrict");
+
         Box::new(MachChecker {
             nx_stack,
             nx_heap,
             stack_canary,
+            restrict,
         })
     }
 }
