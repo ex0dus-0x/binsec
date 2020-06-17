@@ -10,6 +10,7 @@ use goblin::mach::Mach::{Binary, Fat};
 use goblin::Object;
 
 use serde::{Deserialize, Serialize};
+use platforms::target::OS;
 
 use std::boxed::Box;
 use std::fs;
@@ -105,6 +106,23 @@ impl Detector {
     /// and stores it in state for later output.
     #[inline]
     fn kernel_check() -> BinResult<Box<dyn BinFeatures>> {
+        if let Some(platform) = platforms::guess_current() {
+            match platform.target_os {
+                OS::Linux | OS::Android => {
+
+                },
+                OS::MacOS => {
+
+                },
+                OS::Windows => {
+
+                },
+                OS::NetBSD | OS::OpenBSD => {
+
+                },
+                _ => {}
+            }
+        }
         todo!()
     }
 
