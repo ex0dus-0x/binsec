@@ -38,8 +38,9 @@ While it is able to detect the usual binary hardening features across executable
 ## Use Cases
 
 * Use `binsec` as part of your security tooling when conducting black-box static analysis!
-* Incorporate `binsec` as part of a malware detection pipeline to analyze mass amounts of executable samples!
-* CTFs and wargames!
+* Incorporate `binsec` as part of your runtime analysis pipeline!
+* Build machine learning datasets from output for malware detection models!
+* Use in CTFs and wargames!
 
 ## How to Use
 
