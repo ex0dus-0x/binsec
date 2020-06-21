@@ -23,26 +23,24 @@ impl KernelChecker {
     pub fn detect() -> BinResult<Box<dyn FeatureCheck>> {
         if let Some(platform) = platforms::guess_current() {
             match platform.target_os {
-                OS::Linux | OS::Android => {
-                    return Ok(Box::new(linux::LinuxKernelChecker::check()))
-                },
+                OS::Linux | OS::Android => Ok(Box::new(linux::LinuxKernelChecker::check())),
                 OS::MacOS => {
-                    return Err(BinError {
+                    Err(BinError {
                         kind: ErrorKind::KernelCheckError,
                         msg: "Darwin kernel security checks not yet supported".to_string(),
-                    });
-                },
+                    })
+                }
                 OS::Windows => {
-                    return Err(BinError {
+                    Err(BinError {
                         kind: ErrorKind::KernelCheckError,
                         msg: "Win32 kernel security checks not yet supported".to_string(),
-                    });
-                },
+                    })
+                }
                 _ => {
-                    return Err(BinError {
+                    Err(BinError {
                         kind: ErrorKind::KernelCheckError,
                         msg: "unknown unsupported operating system".to_string(),
-                    });
+                    })
                 }
             }
         } else {

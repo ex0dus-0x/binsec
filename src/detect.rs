@@ -2,8 +2,8 @@
 //! inputs. Should be used to detect format and security mitigations for a singular binary.
 #![allow(clippy::match_bool)]
 
-use crate::check::{FeatureCheck, Checker};
 use crate::check::kernel::KernelChecker;
+use crate::check::{Checker, FeatureCheck};
 use crate::errors::{BinError, BinResult, ErrorKind};
 use crate::format::BinFormat;
 
