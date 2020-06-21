@@ -11,7 +11,7 @@ use goblin::pe::PE;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::check::{BinFeatures, Checker, FeatureMap};
+use crate::check::{FeatureCheck, Checker, FeatureMap};
 
 use std::boxed::Box;
 
@@ -24,7 +24,7 @@ pub struct PeInfo {
 }
 
 #[typetag::serde]
-impl BinFeatures for PeInfo {
+impl FeatureCheck for PeInfo {
     fn dump_mapping(&self) -> FeatureMap {
         let mut features: FeatureMap = FeatureMap::new();
         features.insert("Machine", json!(self.machine));
@@ -40,7 +40,7 @@ impl BinFeatures for PeInfo {
 pub struct PeChecker {}
 
 #[typetag::serde]
-impl BinFeatures for PeChecker {
+impl FeatureCheck for PeChecker {
     fn dump_mapping(&self) -> FeatureMap {
         let features: FeatureMap = FeatureMap::new();
         features
@@ -49,7 +49,7 @@ impl BinFeatures for PeChecker {
 
 impl Checker for PE<'_> {
     /// parses out basic binary information and stores for consumption and output.
-    fn bin_info(&self) -> Box<dyn BinFeatures> {
+    fn bin_info(&self) -> Box<dyn FeatureCheck> {
         Box::new(PeInfo {
             machine: self.header.coff_header.machine,
             num_sections: self.header.coff_header.number_of_sections,
@@ -58,7 +58,7 @@ impl Checker for PE<'_> {
     }
 
     /// implements the necesary checks for the security mitigations for the specific file format.
-    fn harden_check(&self) -> Box<dyn BinFeatures> {
+    fn harden_check(&self) -> Box<dyn FeatureCheck> {
         Box::new(PeChecker {})
     }
 }
