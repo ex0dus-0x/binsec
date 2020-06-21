@@ -11,7 +11,7 @@ use goblin::pe::PE;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::check::{FeatureCheck, Checker, FeatureMap};
+use crate::check::{Checker, FeatureCheck, FeatureMap};
 
 use std::boxed::Box;
 

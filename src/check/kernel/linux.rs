@@ -1,9 +1,10 @@
 //! Kernel security mitigation checker that can be deployed on a Linux host.
 
-use crate::check::{FeatureCheck, FeatureMap};
 use crate::check::kernel::KernelCheck;
+use crate::check::{FeatureCheck, FeatureMap};
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use serde_json::json;
 
 use sysctl::Sysctl;
 
@@ -15,10 +16,10 @@ enum Aslr {
     Mmap,
     Exec,
     Brk,
-    Vdso
+    Vdso,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 enum PtraceScope {
     Classic,
     Restricted,
@@ -26,7 +27,6 @@ enum PtraceScope {
     NoAttach,
     None,
 }
-
 
 #[derive(Serialize, Deserialize)]
 pub struct LinuxKernelChecker {
@@ -45,6 +45,9 @@ pub struct LinuxKernelChecker {
 impl FeatureCheck for LinuxKernelChecker {
     fn dump_mapping(&self) -> FeatureMap {
         let mut feature_map = FeatureMap::new();
+        feature_map.insert("AppArmor", json!(self.apparmor));
+        feature_map.insert("Ptrace Scope", json!(self.ptrace_scope));
+        feature_map.insert("ASLR Enabled", json!(self.aslr));
         feature_map
     }
 }
@@ -57,14 +60,12 @@ impl KernelCheck for LinuxKernelChecker {
         // get ptrace permissions from sysctl settings
         let ps_ctl = sysctl::Ctl::new("kernel.yama.ptrace_scope").unwrap();
         let ptrace_scope_val: PtraceScope = match ps_ctl.value().unwrap() {
-            sysctl::CtlValue::Int(val) => {
-                match val {
-                    0 => PtraceScope::Classic,
-                    1 => PtraceScope::Restricted,
-                    2 => PtraceScope::AdminOnly,
-                    3 => PtraceScope::NoAttach,
-                    _ => PtraceScope::None,
-                }
+            sysctl::CtlValue::Int(val) => match val {
+                0 => PtraceScope::Classic,
+                1 => PtraceScope::Restricted,
+                2 => PtraceScope::AdminOnly,
+                3 => PtraceScope::NoAttach,
+                _ => PtraceScope::None,
             },
             _ => PtraceScope::None,
         };
@@ -72,13 +73,11 @@ impl KernelCheck for LinuxKernelChecker {
         // check if ASLR is enabled
         let aslr_ctl = sysctl::Ctl::new("kernel.randomize_va_sapce").unwrap();
         let aslr_val: bool = match aslr_ctl.value().unwrap() {
-            sysctl::CtlValue::Int(val) => {
-                match val {
-                    0 => false,
-                    1 | _ => true,
-                }
-            }
-            _ => false
+            sysctl::CtlValue::Int(val) => match val {
+                0 => false,
+                1 | _ => true,
+            },
+            _ => false,
         };
 
         todo!()
