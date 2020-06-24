@@ -12,6 +12,7 @@ pub type BinResult<R> = Result<R, BinError>;
 pub enum ErrorKind {
     ParseError,
     BinaryError,
+    KernelCheckError,
     FileError,
     DumpError,
 }
