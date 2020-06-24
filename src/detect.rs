@@ -2,7 +2,8 @@
 //! inputs. Should be used to detect format and security mitigations for a singular binary.
 #![allow(clippy::match_bool)]
 
-use crate::check::{BinFeatures, Checker};
+use crate::check::kernel::KernelChecker;
+use crate::check::{Checker, FeatureCheck};
 use crate::errors::{BinError, BinResult, ErrorKind};
 use crate::format::BinFormat;
 
@@ -29,15 +30,15 @@ pub enum ExecMode {
 #[derive(Serialize, Deserialize)]
 pub struct Detector {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub bin_info: Option<Box<dyn BinFeatures>>,
+    pub bin_info: Option<Box<dyn FeatureCheck>>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub kernel_features: Option<Box<dyn BinFeatures>>,
+    pub kernel_features: Option<Box<dyn FeatureCheck>>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub rule_features: Option<Box<dyn BinFeatures>>,
+    pub rule_features: Option<Box<dyn FeatureCheck>>,
 
-    pub harden_features: Box<dyn BinFeatures>,
+    pub harden_features: Box<dyn FeatureCheck>,
 }
 
 impl Detector {
@@ -48,17 +49,17 @@ impl Detector {
         let buffer = fs::read(path.as_path())?;
 
         // do format-specific hardening check by default
-        let (bin_info, harden_features): (Option<Box<dyn BinFeatures>>, Box<dyn BinFeatures>) =
+        let (bin_info, harden_features): (Option<Box<dyn FeatureCheck>>, Box<dyn FeatureCheck>) =
             match Object::parse(&buffer)? {
                 Object::Elf(elf) => {
-                    let bin_info: Option<Box<dyn BinFeatures>> = match _bin_info {
+                    let bin_info: Option<Box<dyn FeatureCheck>> = match _bin_info {
                         true => Some(elf.bin_info()),
                         false => None,
                     };
                     (bin_info, elf.harden_check())
                 }
                 Object::PE(pe) => {
-                    let bin_info: Option<Box<dyn BinFeatures>> = match _bin_info {
+                    let bin_info: Option<Box<dyn FeatureCheck>> = match _bin_info {
                         true => Some(pe.bin_info()),
                         false => None,
                     };
@@ -66,7 +67,7 @@ impl Detector {
                 }
                 Object::Mach(_mach) => match _mach {
                     Binary(mach) => {
-                        let bin_info: Option<Box<dyn BinFeatures>> = match _bin_info {
+                        let bin_info: Option<Box<dyn FeatureCheck>> = match _bin_info {
                             true => Some(mach.bin_info()),
                             false => None,
                         };
@@ -87,9 +88,9 @@ impl Detector {
                 }
             };
 
-        // detect kernel mitigations features if set
-        let kernel_features: Option<Box<dyn BinFeatures>> = match exec_mode {
-            ExecMode::Kernel => Some(Detector::kernel_check()?),
+        // detect kernel mitigations features if set for the current host's operating system
+        let kernel_features: Option<Box<dyn FeatureCheck>> = match exec_mode {
+            ExecMode::Kernel => Some(KernelChecker::detect()?),
             _ => None,
         };
 
@@ -99,13 +100,6 @@ impl Detector {
             rule_features: None,
             harden_features,
         })
-    }
-
-    /// executes a kernel-specific check upon the current system that's performing the detection,
-    /// and stores it in state for later output.
-    #[inline]
-    fn kernel_check() -> BinResult<Box<dyn BinFeatures>> {
-        todo!()
     }
 
     /// interfaces the routines within the `BinFormat` given and emit a string that can be

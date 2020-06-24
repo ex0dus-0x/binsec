@@ -13,7 +13,7 @@ use goblin::mach::MachO;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::check::{BinFeatures, Checker, FeatureMap};
+use crate::check::{Checker, FeatureCheck, FeatureMap};
 
 use std::boxed::Box;
 
@@ -30,7 +30,7 @@ pub struct MachInfo {
 }
 
 #[typetag::serde]
-impl BinFeatures for MachInfo {
+impl FeatureCheck for MachInfo {
     fn dump_mapping(&self) -> FeatureMap {
         let mut features: FeatureMap = FeatureMap::new();
         features.insert("Machine", json!(self.machine));
@@ -52,7 +52,7 @@ pub struct MachChecker {
 }
 
 #[typetag::serde]
-impl BinFeatures for MachChecker {
+impl FeatureCheck for MachChecker {
     fn dump_mapping(&self) -> FeatureMap {
         let mut features: FeatureMap = FeatureMap::new();
         features.insert("Non-Executable Stack", json!(self.nx_stack));
@@ -65,7 +65,7 @@ impl BinFeatures for MachChecker {
 
 impl Checker for MachO<'_> {
     /// parses out basic binary information and stores for consumption and output.
-    fn bin_info(&self) -> Box<dyn BinFeatures> {
+    fn bin_info(&self) -> Box<dyn FeatureCheck> {
         // parse out machine architecture given cpu type and subtype
         let machine: String =
             cputype::get_arch_name_from_types(self.header.cputype(), self.header.cpusubtype())
@@ -87,7 +87,7 @@ impl Checker for MachO<'_> {
     }
 
     /// implements the necesary checks for the security mitigations for the specific file format.
-    fn harden_check(&self) -> Box<dyn BinFeatures> {
+    fn harden_check(&self) -> Box<dyn FeatureCheck> {
         // check for non-executable stack
         let nx_stack: bool = match self.header.flags & MH_ALLOW_STACK_EXECUTION {
             0 => true,

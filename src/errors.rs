@@ -13,6 +13,7 @@ pub enum ErrorKind {
     ParseError,
     BinaryError,
     RuleEngineError,
+    KernelCheckError,
     FileError,
     DumpError,
 }
