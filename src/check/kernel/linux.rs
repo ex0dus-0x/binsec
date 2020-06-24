@@ -1,15 +1,26 @@
-//! Kernel security mitigation checker that can be deployed on a Linux host.
+//! Kernel security mitigation checker that can be deployed on a Linux host. Checks for the the
+//! following features on the host:
+//! * AppArmor
+//! * ASLR
+//! * kASLR
+//! * `ptrace` scope
+//! *
 
 use crate::check::kernel::KernelCheck;
 use crate::check::{FeatureCheck, FeatureMap};
+use crate::errors::{BinResult, BinError, ErrorKind};
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use sysctl::Sysctl;
+use procfs::ConfigSetting;
 
+use std::fs::File;
+use std::io::Read;
 use std::path::Path;
 
+/// TODO: make this work!!
 #[derive(Serialize, Deserialize)]
 enum Aslr {
     Stack,
@@ -19,6 +30,8 @@ enum Aslr {
     Vdso,
 }
 
+/// defines the type of restriction being used on calls to `ptrace` when doing
+/// any type of process introspection.
 #[derive(Serialize, Deserialize, Debug)]
 enum PtraceScope {
     Classic,
@@ -53,7 +66,7 @@ impl FeatureCheck for LinuxKernelChecker {
 }
 
 impl KernelCheck for LinuxKernelChecker {
-    fn check() -> Self {
+    fn check() -> BinResult<Self> {
         // check if path exists to determine if AppArmor is loaded in kernel
         let apparmor: bool = Path::new("/sys/kernel/security/apparmor").exists();
 
@@ -71,7 +84,7 @@ impl KernelCheck for LinuxKernelChecker {
         };
 
         // check if ASLR is enabled
-        let aslr_ctl = sysctl::Ctl::new("kernel.randomize_va_sapce").unwrap();
+        let aslr_ctl = sysctl::Ctl::new("kernel.randomize_va_space").unwrap();
         let aslr_val: bool = match aslr_ctl.value().unwrap() {
             sysctl::CtlValue::Int(val) => match val {
                 0 => false,
@@ -80,6 +93,19 @@ impl KernelCheck for LinuxKernelChecker {
             _ => false,
         };
 
+        // check if kASLR is enabled through `/proc/cmdline`
+        let mut procfile: File = File::open("/proc/cmdline")?;
+        let mut kernel_params = String::new();
+        procfile.read_to_string(&mut kernel_params)?;
+
+        // check if `kaslr` was configured for boot
+        let kaslr: bool = kernel_params.contains("kaslr");
+
+        // check if /dev/mem protection is enabled
+
+        // check if /dev/kmem virtual device is enabled, which is a potential attack surface
+        let dev_kmem: String = String::from("CONFIG_DEVKMEM");
+        let dev_kmem_access: bool = LinuxKernelChecker::kernel_config_set(dev_kmem);
         todo!()
     }
 }
