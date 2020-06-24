@@ -17,15 +17,12 @@ pub trait KernelCheck {
     where
         Self: std::marker::Sized;
 
-
     /// parses the kernel configuration and checks to see if a specific parameter is initialized
     /// as something, and returns true if exists.
     fn kernel_config_set(name: String) -> BinResult<bool> {
-        let kernel_config = procfs::kernel_config().map_err(|e| {
-            BinError {
-                kind: ErrorKind::KernelCheckError,
-                msg: e.to_string(),
-            }
+        let kernel_config = procfs::kernel_config().map_err(|e| BinError {
+            kind: ErrorKind::KernelCheckError,
+            msg: e.to_string(),
         })?;
         Ok(kernel_config.contains_key(&name))
     }
@@ -33,11 +30,9 @@ pub trait KernelCheck {
     /// parses the kernel configuration and returns the value a specific parameter is initialized
     /// as, and returns if exists.
     fn kernel_config_get(name: String) -> BinResult<String> {
-        let kernel_config = procfs::kernel_config().map_err(|e| {
-            BinError {
-                kind: ErrorKind::KernelCheckError,
-                msg: e.to_string(),
-            }
+        let kernel_config = procfs::kernel_config().map_err(|e| BinError {
+            kind: ErrorKind::KernelCheckError,
+            msg: e.to_string(),
         })?;
 
         // attempt to retrieve value and parse to string
@@ -50,7 +45,10 @@ pub trait KernelCheck {
         } else {
             Err(BinError {
                 kind: ErrorKind::KernelCheckError,
-                msg: format!("cannot get kernel configuration value for given key {}", name),
+                msg: format!(
+                    "cannot get kernel configuration value for given key {}",
+                    name
+                ),
             })
         }
     }
@@ -65,13 +63,13 @@ impl KernelChecker {
         if let Some(platform) = platforms::guess_current() {
             match platform.target_os {
                 OS::Linux | OS::Android => Ok(Box::new(linux::LinuxKernelChecker::check()?)),
-                OS::MacOS => Err(BinError {
+                OS::MacOS | OS::FreeBSD | OS::NetBSD => Err(BinError {
                     kind: ErrorKind::KernelCheckError,
-                    msg: "Darwin kernel security checks not yet supported".to_string(),
+                    msg: "Darwin/BSD kernel security checks not yet supported".to_string(),
                 }),
                 OS::Windows => Err(BinError {
                     kind: ErrorKind::KernelCheckError,
-                    msg: "Win32 kernel security checks not yet supported".to_string(),
+                    msg: "Windows kernel security checks not yet supported".to_string(),
                 }),
                 _ => Err(BinError {
                     kind: ErrorKind::KernelCheckError,
