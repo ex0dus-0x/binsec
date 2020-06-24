@@ -57,6 +57,12 @@ impl BinFormat {
             BinFormat::generate_rows(&mut basic_table, info.dump_mapping());
         }
 
+        // check if kernel checks were specified
+        if let Some(kernchecks) = &input.kernel_features {
+            BinFormat::add_header(&mut basic_table, "Host Kernel Checks");
+            BinFormat::generate_rows(&mut basic_table, kernchecks.dump_mapping());
+        }
+
         // add in hardening checks
         BinFormat::add_header(&mut basic_table, "Binary Hardening Checks");
         BinFormat::generate_rows(&mut basic_table, input.harden_features.dump_mapping());

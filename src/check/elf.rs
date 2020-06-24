@@ -14,7 +14,7 @@ use goblin::elf::{header, program_header, Elf, ProgramHeader};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::check::{BinFeatures, Checker, FeatureMap};
+use crate::check::{Checker, FeatureCheck, FeatureMap};
 
 use std::boxed::Box;
 
@@ -29,7 +29,7 @@ pub struct ElfInfo {
 
 // extend with trait to enable generic return in Checker trait implementation
 #[typetag::serde]
-impl BinFeatures for ElfInfo {
+impl FeatureCheck for ElfInfo {
     /// converts the checked security mitigations into an associative container for output
     /// consumption with a specific output format.
     fn dump_mapping(&self) -> FeatureMap {
@@ -76,7 +76,7 @@ struct ElfChecker {
 // extend with trait to enable generic return in Checker trait implementation, and provide
 // facilities for dumping out as a genericized FeatureMap
 #[typetag::serde]
-impl BinFeatures for ElfChecker {
+impl FeatureCheck for ElfChecker {
     /// converts the checked security mitigations into an associative container for output
     /// consumption with a specific output format
     fn dump_mapping(&self) -> FeatureMap {
@@ -95,7 +95,7 @@ impl BinFeatures for ElfChecker {
 
 impl Checker for Elf<'_> {
     /// parses out basic binary information and stores for consumption and output.
-    fn bin_info(&self) -> Box<dyn BinFeatures> {
+    fn bin_info(&self) -> Box<dyn FeatureCheck> {
         let header: header::Header = self.header;
         let file_class: &str = match header.e_ident[4] {
             1 => "ELF32",
@@ -112,7 +112,7 @@ impl Checker for Elf<'_> {
     }
 
     /// implements the necesary checks for the security mitigations for the specific file format.
-    fn harden_check(&self) -> Box<dyn BinFeatures> {
+    fn harden_check(&self) -> Box<dyn FeatureCheck> {
         // check for executable stack through program headers
         let exec_stack: bool = self
             .program_headers

@@ -20,8 +20,9 @@ Swiss Army Knife for Binary (In)security
 The current upstream crate is `0.2.0`, while this repository is on its way to `1.0.0`. Here's what's left:
 
 * [ ] Finalize checks for PE and MachO
+* [ ] Finalize YARA rule engine
+* [ ] Kernel checks for macOS and Windows
 * [ ] Add CSV/XML serialization
-* [ ] Kernel and YARA rules
 * [ ] UX improvements
 
 ## Introduction
@@ -38,8 +39,9 @@ While it is able to detect the usual binary hardening features across executable
 ## Use Cases
 
 * Use `binsec` as part of your security tooling when conducting black-box static analysis!
-* Incorporate `binsec` as part of a malware detection pipeline to analyze mass amounts of executable samples!
-* CTFs and wargames!
+* Incorporate `binsec` as part of your runtime analysis pipeline!
+* Build machine learning datasets from output for malware detection models!
+* Use in CTFs and wargames!
 
 ## How to Use
 
