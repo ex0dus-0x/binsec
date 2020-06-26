@@ -1,9 +1,9 @@
+// Name: Anti-Virtualization
 
 rule vmdetect
 {
     meta:
-        author = "nex"
-        description = "Possibly employs anti-virtualization techniques"
+        description = "Platform-agnostic detections for possible anti-VM calls"
 
     strings:
         // Binary tricks

@@ -1,27 +1,15 @@
-/*
-    This Yara ruleset is under the GNU-GPLv2 license (http://www.gnu.org/licenses/gpl-2.0.html) and open to any user or organization, as    long as you use it under this license.
-*/
-
 import "pe"
 
-rule DebuggerCheck__PEB : AntiDebug DebuggerCheck {
+rule antidebug {
 	meta:
 		weight = 1
 		Author = "naxonez"
 		reference = "https://github.com/naxonez/yaraRules/blob/master/AntiDebugging.yara"
 	strings:
 		$ ="IsDebugged"
-	condition:
-		any of them
-}
-
-rule DebuggerCheck__GlobalFlags : AntiDebug DebuggerCheck {
-	meta:
-		weight = 1
-		Author = "naxonez"
-		reference = "https://github.com/naxonez/yaraRules/blob/master/AntiDebugging.yara"
-	strings:
 		$ ="NtGlobalFlags"
+		$ ="CheckRemoteDebuggerPresent"
+		$ ="QueryInformationProcess"
 	condition:
 		any of them
 }
@@ -32,7 +20,6 @@ rule DebuggerCheck__QueryInfo : AntiDebug DebuggerCheck {
 		Author = "naxonez"
 		reference = "https://github.com/naxonez/yaraRules/blob/master/AntiDebugging.yara"
 	strings:
-		$ ="QueryInformationProcess"
 	condition:
 		any of them
 }
@@ -43,7 +30,6 @@ rule DebuggerCheck__RemoteAPI : AntiDebug DebuggerCheck {
 		Author = "naxonez"
 		reference = "https://github.com/naxonez/yaraRules/blob/master/AntiDebugging.yara"
 	strings:
-		$ ="CheckRemoteDebuggerPresent"
 	condition:
 		any of them
 }
