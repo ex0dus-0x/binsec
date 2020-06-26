@@ -10,6 +10,10 @@ use std::process::Command;
 
 #[derive(Serialize, Deserialize)]
 struct YaraMatches {
+    name: String,
+    collection: String,
+    path: Path,
+    detected: bool,
 }
 
 
@@ -17,15 +21,16 @@ struct YaraMatches {
 //! and is able to consume rules and executables to match those rules against. The output format
 //! that is generated is a `YaraMatches` -typed mapping.
 pub struct YaraExecutor {
-    rules: Vec<Path>
+    rules: Vec<Path>,
 }
 
 impl YaraExecutor {
 
     /// instantiates a new executor with no rules and executable to match against.
-    pub fn new_executor() -> Self {
+    pub fn new() -> Self {
         Self {
-            rules: Vec::new(),
+            rule_paths: Vec::new(),
+            matches: Vec::new(),
         }
     }
 
@@ -34,6 +39,8 @@ impl YaraExecutor {
         self.rules.push(rule);
         self
     }
+
+    fn build_cmd()
 
     /// given a set of rules, test them against the path to an executable and store their
     /// results for return and later consumption in a `YaraMatches` structure.
@@ -45,6 +52,8 @@ impl YaraExecutor {
                 msg: "no rules found to test against binary".to_string(),
             }
         }
+
+
         Ok(())
     }
 }
