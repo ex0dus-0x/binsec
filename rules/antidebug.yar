@@ -38,7 +38,6 @@ rule AntiDebugCalls {
         pe.imports("kernel32.dll", "K32GetProcessMemoryInfo") and
 		pe.imports("kernel32.dll", "GetCurrentProcess")
 
-
 	condition:
 		any of them
 }
