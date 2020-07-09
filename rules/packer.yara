@@ -3,7 +3,7 @@
 
 import "pe"
 
-rule movfuscator
+rule Movfuscator
 {
     meta:
 		name = "Movfuscator"
@@ -18,7 +18,7 @@ rule movfuscator
 }
 
 
-rule upx
+rule UPX
 {
     meta:
 		name = "UPX"
@@ -35,34 +35,40 @@ rule upx
 
     condition:
         $mz at 0 and $upx1 in (0..1024) and $upx2 in (0..1024) and $upx_sig in (0..1024) or
-        all of ( $str_upx_* )
+        all of ($str_upx*)
 }
 
 
-rule pyinstaller
+rule PyInstaller
 {
     meta:
         name = "PyInstaller"
         description = "Platform-agnostic rule to check if packed with pyinstaller"
+        link = "https://github.com/Yara-Rules/rules/blob/master/malware/MALW_Pyinstaller.yar"
 
     strings:
-        $pyi_str0 = "pyinstaller"
+
+        // PyInstaller bootstrapped on Windows
+        $pyi_win = "pyi-windows-manifest-filename"
+
+        // PyInstaller bootstrapped on Unix
+        $pyi_unix = "pyi-runtime-tmpdir"
 
     condition:
-        any of them
+        (pe.number_of_resources > 0 and $pyi_win) or
+        $pyi_unix
 }
 
 
-rule py2exe
+rule Py2Exe
 {
 	meta:
+        name = "Py2Exe"
 		description = "Detect py2exe-compiled PE executable"
-
-	strings:
-		$py2exe = "P\x00Y\x00T\x00H\x00O\x00N\x00S\x00C\x00R\x00I\x00P\x00T\x00"
+        link = "https://github.com/NVISO-BE/YARA/blob/master/py2exe.yara"
 
 	condition:
 		for any i in (0 .. pe.number_of_resources - 1):
-          (pe.resources[i].type_string == $py2exe)
+          (pe.resources[i].type_string == "P\x00Y\x00T\x00H\x00O\x00N\x00S\x00C\x00R\x00I\x00P\x00T\x00")
 }
 

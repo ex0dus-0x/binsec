@@ -1,4 +1,5 @@
 *.out
-test.out
-/target
 **/*.rs.bk
+
+example/
+target/
