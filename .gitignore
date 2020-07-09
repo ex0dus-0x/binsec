@@ -1,3 +1,4 @@
+*.out
 test.out
 /target
 **/*.rs.bk
