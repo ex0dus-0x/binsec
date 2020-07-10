@@ -25,14 +25,14 @@ fn parse_args<'a>() -> ArgMatches<'a> {
         .arg(
             Arg::with_name("check")
                 .help(
-                    "Sets the type of check to run (available: all, harden (default), \
-                      kernel, yara).",
+                    "Sets the type of check to run (available: harden (default), \
+                      kernel, deep).",
                 )
                 .short("check")
                 .long("check")
                 .takes_value(true)
                 .value_name("DETECTOR")
-                .possible_values(&["all", "harden", "kernel", "yara"])
+                .possible_values(&["harden", "kernel", "deep"])
                 .multiple(true)
                 .required(false),
         )
@@ -73,12 +73,16 @@ fn run(args: ArgMatches) -> BinResult<()> {
     };
 
     // parse out the mode of execution we are using for checks
+    let checks: Vec<_> = args.values_of("check").unwrap().collect();
+
+    /*
     let check: ExecMode = match args.value_of("check") {
         Some("all") => ExecMode::All,
         Some("kernel") => ExecMode::Kernel,
         Some("yara") => ExecMode::Yara,
         Some("harden") | Some(&_) | None => ExecMode::Harden,
     };
+    */
 
     // initialize binsec detector
     for binary in binaries {
@@ -87,6 +91,7 @@ fn run(args: ArgMatches) -> BinResult<()> {
 
         // initialize detector for the binary
         let detector = Detector::detect(binpath, &check, basic_info)?;
+
 
         // dump and output results given a format
         // TODO: deal with if given an output path
