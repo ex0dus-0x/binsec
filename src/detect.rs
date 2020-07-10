@@ -6,6 +6,7 @@ use crate::check::kernel::KernelChecker;
 use crate::check::{Checker, FeatureCheck};
 use crate::errors::{BinError, BinResult, ErrorKind};
 use crate::format::BinFormat;
+use crate::rule_engine::YaraExecutor;
 
 use goblin::mach::Mach::{Binary, Fat};
 use goblin::Object;
@@ -29,22 +30,25 @@ pub enum ExecMode {
 /// for serialization and output.
 #[derive(Serialize, Deserialize)]
 pub struct Detector {
+
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub bin_info: Option<Box<dyn FeatureCheck>>,
+
+    pub harden_features: Box<dyn FeatureCheck>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub kernel_features: Option<Box<dyn FeatureCheck>>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rule_features: Option<Box<dyn FeatureCheck>>,
-
-    pub harden_features: Box<dyn FeatureCheck>,
 }
 
+
 impl Detector {
+
     /// run the detector given the instantiated configuration options, and stores results for later
     /// output and consumption.
-    pub fn detect(path: PathBuf, exec_mode: &ExecMode, _bin_info: bool) -> BinResult<Self> {
+    pub fn detect(path: PathBuf, kernel: bool, rules: bool,, _bin_info: bool) -> BinResult<Self> {
         // read from input path and instantiate checker based on binary format
         let buffer = fs::read(path.as_path())?;
 
@@ -57,14 +61,14 @@ impl Detector {
                         false => None,
                     };
                     (bin_info, elf.harden_check())
-                }
+                },
                 Object::PE(pe) => {
                     let bin_info: Option<Box<dyn FeatureCheck>> = match _bin_info {
                         true => Some(pe.bin_info()),
                         false => None,
                     };
                     (bin_info, pe.harden_check())
-                }
+                },
                 Object::Mach(_mach) => match _mach {
                     Binary(mach) => {
                         let bin_info: Option<Box<dyn FeatureCheck>> = match _bin_info {
