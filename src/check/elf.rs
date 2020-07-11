@@ -14,7 +14,8 @@ use goblin::elf::{header, program_header, Elf, ProgramHeader};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::check::{Checker, FeatureCheck, FeatureMap};
+use crate::check::{Checker, FeatureCheck};
+use crate::format::{BinTable, FeatureMap};
 
 use std::boxed::Box;
 
@@ -32,13 +33,13 @@ pub struct ElfInfo {
 impl FeatureCheck for ElfInfo {
     /// converts the checked security mitigations into an associative container for output
     /// consumption with a specific output format.
-    fn dump_mapping(&self) -> FeatureMap {
+    fn output(&self) -> String {
         let mut features: FeatureMap = FeatureMap::new();
         features.insert("Architecture", json!(self.machine));
         features.insert("File Class", json!(self.file_class));
         features.insert("Binary Type", json!(self.bin_type));
         features.insert("Entry Point Address", json!(self.entry_point));
-        features
+        BinTable::parse("Basic Information", features)
     }
 }
 
@@ -79,7 +80,7 @@ struct ElfChecker {
 impl FeatureCheck for ElfChecker {
     /// converts the checked security mitigations into an associative container for output
     /// consumption with a specific output format
-    fn dump_mapping(&self) -> FeatureMap {
+    fn output(&self) -> String {
         let mut features: FeatureMap = FeatureMap::new();
         features.insert("Executable Stack (NX Bit)", json!(self.exec_stack));
         features.insert("Stack Canary", json!(self.stack_canary));
@@ -89,7 +90,7 @@ impl FeatureCheck for ElfChecker {
             "Read-Only Relocatables (RELRO)",
             json!(self.relro.to_string()),
         );
-        features
+        BinTable::parse("Binary Hardening Checks", features)
     }
 }
 

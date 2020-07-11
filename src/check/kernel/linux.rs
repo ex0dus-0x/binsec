@@ -12,8 +12,9 @@
 //! * Kernel stack protector
 
 use crate::check::kernel::KernelCheck;
-use crate::check::{FeatureCheck, FeatureMap};
+use crate::check::FeatureCheck;
 use crate::errors::BinResult;
+use crate::format::{BinTable, FeatureMap};
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -59,7 +60,7 @@ pub struct LinuxKernelChecker {
 
 #[typetag::serde]
 impl FeatureCheck for LinuxKernelChecker {
-    fn dump_mapping(&self) -> FeatureMap {
+    fn output(&self) -> String {
         let mut feature_map = FeatureMap::new();
         feature_map.insert("AppArmor", json!(self.apparmor));
         feature_map.insert("Ptrace Scope", json!(self.ptrace_scope));
@@ -73,7 +74,7 @@ impl FeatureCheck for LinuxKernelChecker {
             json!(self.ro_kernel_modules),
         );
         feature_map.insert("Kernel Stack Protector", json!(self.kernel_stack_protector));
-        feature_map
+        BinTable::parse("Host Kernel Checks (Linux)", feature_map)
     }
 }
 

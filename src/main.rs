@@ -3,7 +3,7 @@
 use clap::{App, AppSettings, Arg, ArgMatches};
 use colored::*;
 
-use binsec::detect::{Detector, ExecMode};
+use binsec::detect::Detector;
 use binsec::errors::BinResult;
 use binsec::format::BinFormat;
 
@@ -25,14 +25,14 @@ fn parse_args<'a>() -> ArgMatches<'a> {
         .arg(
             Arg::with_name("check")
                 .help(
-                    "Sets the type of check to run (available: all, harden (default), \
-                      kernel, yara).",
+                    "Sets the type of checks to run (available: all, harden (default), \
+                      kernel, enhanced).",
                 )
                 .short("check")
                 .long("check")
                 .takes_value(true)
                 .value_name("DETECTOR")
-                .possible_values(&["all", "harden", "kernel", "yara"])
+                .possible_values(&["all", "harden", "kernel", "enhanced"])
                 .multiple(true)
                 .required(false),
         )
@@ -73,11 +73,22 @@ fn run(args: ArgMatches) -> BinResult<()> {
     };
 
     // parse out the mode of execution we are using for checks
-    let check: ExecMode = match args.value_of("check") {
-        Some("all") => ExecMode::All,
-        Some("kernel") => ExecMode::Kernel,
-        Some("yara") => ExecMode::Yara,
-        Some("harden") | Some(&_) | None => ExecMode::Harden,
+    let (harden, kern, rule): (bool, bool, bool) = match args.values_of("check") {
+        Some(_checks) => {
+            let checks: Vec<_> = _checks.collect();
+            if checks.iter().any(|&arg| arg == "all") {
+                (true, true, true)
+            } else {
+                let res: Vec<bool> = vec!["harden", "kernel", "enhanced"]
+                    .iter()
+                    .map(|&f| checks.iter().any(|&arg| arg == f))
+                    .collect::<Vec<bool>>();
+                (res[0], res[1], res[2])
+            }
+        }
+
+        // if not set, run only with harden checks
+        None => (true, false, false),
     };
 
     // initialize binsec detector
@@ -86,7 +97,8 @@ fn run(args: ArgMatches) -> BinResult<()> {
         let binpath: PathBuf = PathBuf::from(binary.to_string());
 
         // initialize detector for the binary
-        let detector = Detector::detect(binpath, &check, basic_info)?;
+        // TODO: builder pattern for configurations
+        let detector = Detector::detect(binpath, basic_info, harden, kern, rule)?;
 
         // dump and output results given a format
         // TODO: deal with if given an output path
@@ -101,7 +113,7 @@ fn main() {
     match run(cli_args) {
         Ok(_) => {}
         Err(e) => {
-            eprintln!("binsec error: {}", e);
+            eprintln!("binsec failed with: {}", e);
         }
     }
 }

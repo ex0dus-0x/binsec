@@ -19,8 +19,8 @@ Swiss Army Knife for Binary (In)security
 
 The current upstream crate is `0.2.0`, while this repository is on its way to `1.0.0`. Here's what's left:
 
+* [x] Finalize YARA rule engine
 * [ ] Finalize checks for PE and MachO
-* [ ] Finalize YARA rule engine
 * [ ] Kernel checks for macOS and Windows
 * [ ] Add CSV/XML serialization
 * [ ] UX improvements
