@@ -1,4 +1,4 @@
-// Name: Programming Language Checks
+// Name: Programming Language
 // Description: Employs several rules to attempt to determine the language used to implement the binary.
 
 import "pe"

@@ -9,6 +9,7 @@ use crate::detect::Detector;
 use crate::errors::BinResult;
 
 use colored::*;
+use serde_json::Value;
 use term_table::{
     row::Row,
     table_cell::{Alignment, TableCell},
@@ -19,7 +20,7 @@ use std::collections::BTreeMap;
 
 /// Aliases a finalized output type for a detector, storing all the checks that
 /// were performed and their results for consumption by a `BinTable` for creating a table.
-pub type FeatureMap = BTreeMap<&'static str, serde_json::Value>;
+pub type FeatureMap = BTreeMap<&'static str, Value>;
 
 /// Helper struct that helps convert a `FeatureMap` into a normalized ASCII table
 pub struct BinTable;
@@ -29,8 +30,8 @@ impl BinTable {
     pub fn parse(name: &str, mapping: FeatureMap) -> String {
         // initialize blank style term table
         let mut table = Table::new();
-        table.max_column_width = 60;
-        table.style = TableStyle::blank();
+        table.max_column_width = 90;
+        table.style = TableStyle::rounded();
 
         // create bolded header
         table.add_row(Row::new(vec![TableCell::new_with_alignment(
@@ -41,10 +42,21 @@ impl BinTable {
 
         // add features to table
         for (name, feature) in mapping {
-            table.add_row(Row::new(vec![
-                TableCell::new(name),
-                TableCell::new_with_alignment(feature, 1, Alignment::Right),
-            ]));
+            // format display based on content
+            let feature_cell = match feature {
+                Value::Bool(true) => {
+                    TableCell::new_with_alignment("✔️".green(), 1, Alignment::Center)
+                }
+                Value::Bool(false) => {
+                    TableCell::new_with_alignment("✖️".red(), 1, Alignment::Center)
+                }
+                Value::String(val) => {
+                    TableCell::new_with_alignment(val.bold(), 1, Alignment::Center)
+                }
+                _ => TableCell::new_with_alignment(feature, 1, Alignment::Center),
+            };
+
+            table.add_row(Row::new(vec![TableCell::new(name), feature_cell]));
         }
         table.render()
     }
