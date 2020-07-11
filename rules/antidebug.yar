@@ -1,3 +1,6 @@
+// Name: Anti-Debug
+// Description: Checks used to see if target program is trying to detect debugger processes.
+
 import "pe"
 
 rule AntiDebugCalls {

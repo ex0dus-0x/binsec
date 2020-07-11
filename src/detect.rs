@@ -16,6 +16,7 @@ use serde::{Deserialize, Serialize};
 use std::boxed::Box;
 use std::fs;
 use std::path::PathBuf;
+use std::ffi::OsStr;
 
 /// Defines the main interface `Detector` struct, which is instantiated to consume and handle
 /// storing all internally parsed checks in a genericized manner, such that it is much easier
@@ -107,8 +108,29 @@ impl Detector {
         // run the enhanced set of rules against the binary if set
         let rule_features: Option<Box<dyn FeatureCheck>> = match rules {
             true => {
+                // initialize YARA executor
                 let mut rule_exec: YaraExecutor = YaraExecutor::new(path);
-                Some(rule_exec.execute()?)
+
+                // add rules from crate directory to executor
+                let paths = fs::read_dir("rules")?;
+                for _path in paths {
+                    let path: PathBuf = _path?.path();
+
+                    // only parse YARA files
+                    let path_ext: Option<&str> = path.as_path().extension().and_then(OsStr::to_str);
+                    if path_ext != Some("yara") {
+                        continue;
+                    }
+
+                    // add rule to executor for parsing and bootstrapping a command
+                    rule_exec.add_rule(path)?;
+                }
+
+                // execute them against the target, and store results
+                rule_exec.execute()?;
+
+                // return back the matches for display
+                Some(Box::new(rule_exec.matches))
             },
             false => None,
         };
