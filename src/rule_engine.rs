@@ -6,6 +6,7 @@ use crate::errors::{BinError, BinResult, ErrorKind};
 use crate::check::{FeatureCheck, FeatureMap};
 
 use serde::{Deserialize, Serialize};
+//use serde_json::json;
 
 use std::fs;
 use std::path::PathBuf;
@@ -13,8 +14,11 @@ use std::process::Command;
 use std::collections::BTreeMap;
 
 
+/// A `YaraCollection` is denoted as a single file in a ruleset that stores all of the rules
+/// grouped together for the type of analysis being done. Each file that is apart of the
+/// collection must have a `Name` and `Description` comment parsed for informational display.
 #[derive(Deserialize, Serialize, Debug)]
-pub struct Collection {
+pub struct YaraCollection {
     /// Defines the name identifying the collection
     name: String,
 
@@ -26,7 +30,7 @@ pub struct Collection {
 }
 
 
-impl Collection {
+impl YaraCollection {
 
     /// Given a path to YARA file, parse it and create a `YaraMatch` to be represented
     fn parse(path: PathBuf) -> BinResult<Self> {
@@ -46,7 +50,7 @@ impl Collection {
 
         // create BTreeMap for storing rules
         let mut rules: BTreeMap<String, bool> = BTreeMap::new();
-        let _rules: Vec<String> = lines[..2]
+        let _rules: Vec<String> = lines[2..]
             .iter()
             .filter(|r| r.starts_with("rule"))
             .map(|r| {
@@ -74,13 +78,16 @@ impl Collection {
 /// Represents a strongly typed collection of YARA rules, and their statuses when executed against a binary.
 /// This is to be what ends up being serialized and returned to the user, or displayed as a table.
 #[derive(Deserialize, Serialize, Debug, Default)]
-pub struct YaraMatches(Vec<Collection>);
+pub struct YaraMatches(Vec<YaraCollection>);
 
 
 #[typetag::serde]
 impl FeatureCheck for YaraMatches {
+
+    // TODO: fix up
     fn dump_mapping(&self) -> FeatureMap {
-        todo!()
+        let features: FeatureMap = FeatureMap::new();
+        features
     }
 }
 
@@ -113,7 +120,7 @@ impl YaraExecutor {
         self.rules.push(_rule);
 
         // create a new yara match to set for binary
-        self.matches.0.push(Collection::parse(rule)?);
+        self.matches.0.push(YaraCollection::parse(rule)?);
 
         Ok(())
     }
@@ -164,9 +171,8 @@ impl YaraExecutor {
         }
     }
 
-    /// given a set of rules, test them against the path to an executable and store their
-    /// results for return and later consumption in a `YaraMatches` structure.
-    pub fn execute(&mut self) -> BinResult<Box<dyn FeatureCheck>> {
+
+    pub fn execute(&mut self) -> BinResult<()> {
         // if empty ruleset, return error
         if self.rules.is_empty() {
             return Err(BinError {
@@ -190,6 +196,6 @@ impl YaraExecutor {
                 }
             }
         }
-        Ok(Box::new(self.matches))
+        Ok(())
     }
 }

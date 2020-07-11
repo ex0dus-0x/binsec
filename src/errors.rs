@@ -27,7 +27,7 @@ pub struct BinError {
 
 impl Display for BinError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        write!(f, "{:?}: {}", self.kind, self.msg)
+        write!(f, "\"{:?}: {}\"", self.kind, self.msg)
     }
 }
 

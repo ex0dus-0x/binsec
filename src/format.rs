@@ -63,11 +63,19 @@ impl BinFormat {
             BinFormat::generate_rows(&mut basic_table, kernchecks.dump_mapping());
         }
 
-        // add in hardening checks
+        // check if hardening checks were specified
         if let Some(harden_checks) = &input.harden_features {
             BinFormat::add_header(&mut basic_table, "Binary Hardening Checks");
             BinFormat::generate_rows(&mut basic_table, harden_checks.dump_mapping());
         }
+
+        // check if enhanced checks were specified
+        if let Some(rule_checks) = &input.rule_features {
+            BinFormat::add_header(&mut basic_table, "Enhanced (YARA) Checks");
+            BinFormat::generate_rows(&mut basic_table, rule_checks.dump_mapping());
+        }
+
+
         basic_table.render()
     }
 

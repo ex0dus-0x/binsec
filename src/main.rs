@@ -111,7 +111,7 @@ fn main() {
     match run(cli_args) {
         Ok(_) => {}
         Err(e) => {
-            eprintln!("binsec error: {}", e);
+            eprintln!("binsec failed with: {}", e);
         }
     }
 }
