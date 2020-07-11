@@ -2,28 +2,28 @@
 // Description: Checks deployed to determine if binary is making any calls that might represent anti-VM detection.
 
 
-rule GenericVMDetect
+rule Generic
 {
     meta:
         name = "Generic Anti-VM"
         description = "Rules for platform-agnostic anti-virtualization checks"
 
     strings:
-        $virtualpc = {0F 3F 07 0B}
+        $generic_virtualpc = {0F 3F 07 0B}
         $ssexy = {66 0F 70 ?? ?? 66 0F DB ?? ?? ?? ?? ?? 66 0F DB ?? ?? ?? ?? ?? 66 0F EF}
         $vmcheckdll = {45 C7 00 01}
         $redpill = {0F 01 0D 00 00 00 00 C3}
 
-	conditions:
+	condition:
 		any of them
 }
 
 
-rule VMwareDetect
+rule VMware
 {
 	meta:
-        name: "VMware"
-		description: "Rules to check if program is detecting if VMware is the hypervisor"
+        name = "VMware"
+		description = "Rules to check if program is detecting if VMware is the hypervisor"
 
 	strings:
 		// Resources
@@ -76,13 +76,13 @@ rule VMwareDetect
 }
 
 
-rule VBoxDetect
+rule VirtualBox
 {
 	meta:
         name = "VirtualBox"
 		description = "Rules to check if program is detecting if VBox is the hypervisor"
 
-	rules:
+	strings:
         // Resources
         $virtualbox1 = "VBoxHook.dll" nocase
         $virtualbox2 = "VBoxService" nocase
@@ -107,11 +107,11 @@ rule VBoxDetect
 }
 
 
-rule XenDetect
+rule Xen
 {
 	meta:
-        name: "Xen"
-		description: "Rules to check if program is detecting if Xen is the hypervisor"
+        name = "Xen"
+		description = "Rules to check if program is detecting if Xen is the hypervisor"
 
 	strings:
 		// Resources
@@ -127,7 +127,7 @@ rule XenDetect
 }
 
 
-rule VirtualPCDetect
+rule VirtualPC
 {
 	meta:
         name = "VirtualPC"
@@ -145,7 +145,7 @@ rule VirtualPCDetect
 }
 
 
-rule MiscDetect
+rule Other
 {
 	meta:
         name = "Miscellaneous"

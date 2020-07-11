@@ -13,7 +13,8 @@ use goblin::mach::MachO;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::check::{Checker, FeatureCheck, FeatureMap};
+use crate::check::{Checker, FeatureCheck};
+use crate::format::{BinTable, FeatureMap};
 
 use std::boxed::Box;
 
@@ -31,13 +32,13 @@ pub struct MachInfo {
 
 #[typetag::serde]
 impl FeatureCheck for MachInfo {
-    fn dump_mapping(&self) -> FeatureMap {
+    fn output(&self) -> String {
         let mut features: FeatureMap = FeatureMap::new();
         features.insert("Machine", json!(self.machine));
         features.insert("Filetype", json!(self.filetype));
         features.insert("Flags", json!(self.flags));
         features.insert("Number of Load Commands", json!(self.num_cmds));
-        features
+        BinTable::parse("Basic Information", features)
     }
 }
 
@@ -53,13 +54,13 @@ pub struct MachChecker {
 
 #[typetag::serde]
 impl FeatureCheck for MachChecker {
-    fn dump_mapping(&self) -> FeatureMap {
+    fn output(&self) -> String {
         let mut features: FeatureMap = FeatureMap::new();
         features.insert("Non-Executable Stack", json!(self.nx_stack));
         features.insert("Non-Executable Heap", json!(self.nx_heap));
         features.insert("Stack Canary", json!(self.stack_canary));
         features.insert("Restrict Code Injection", json!(self.restrict));
-        features
+        BinTable::parse("Binary Hardening Checks", features)
     }
 }
 

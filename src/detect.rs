@@ -14,9 +14,9 @@ use goblin::Object;
 use serde::{Deserialize, Serialize};
 
 use std::boxed::Box;
+use std::ffi::OsStr;
 use std::fs;
 use std::path::PathBuf;
-use std::ffi::OsStr;
 
 /// Defines the main interface `Detector` struct, which is instantiated to consume and handle
 /// storing all internally parsed checks in a genericized manner, such that it is much easier
@@ -131,7 +131,7 @@ impl Detector {
 
                 // return back the matches for display
                 Some(Box::new(rule_exec.matches))
-            },
+            }
             false => None,
         };
 
