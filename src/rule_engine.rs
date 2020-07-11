@@ -4,11 +4,9 @@
 
 use crate::check::FeatureCheck;
 use crate::errors::{BinError, BinResult, ErrorKind};
-use crate::format::{BinTable, FeatureMap};
 
 use colored::*;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -28,6 +26,19 @@ pub struct YaraCollection {
 
     /// Represents collection of individual rules being run, and their resultant status
     rules: BTreeMap<String, bool>,
+}
+
+impl std::string::ToString for YaraCollection {
+    fn to_string(&self) -> String {
+        let mut output: String = String::new();
+        output.push_str(&format!("{}", "Collection Name: ".bold()));
+        output.push_str(&self.name);
+        output.push_str("\n");
+
+        output.push_str(&format!("{}", "Description: ".bold()));
+        output.push_str(&self.description);
+        output
+    }
 }
 
 impl YaraCollection {
@@ -80,19 +91,46 @@ pub struct YaraMatches(Vec<YaraCollection>);
 
 #[typetag::serde]
 impl FeatureCheck for YaraMatches {
+    /// Re-implementation of `BinTable::parse`, since this requires handling for specific categorized rulesets
+    /// and does not have genericized values in the internal mapping.
     fn output(&self) -> String {
-        let mut output: String = String::new();
-        output.push_str(&format!(
-            "{}\n\n",
-            "Enhanced (YARA) Checks{}".bold().underline()
-        ));
+        use term_table::row::Row;
+        use term_table::table_cell::{Alignment, TableCell};
+        use term_table::{Table, TableStyle};
+
+        // new custom table
+        let mut table = Table::new();
+        table.max_column_width = 60;
+        table.style = TableStyle::rounded();
+
+        // create main header
+        let main_header: &str = &format!("{}", "Enhanced (YARA) Checks".bold().underline());
+        table.add_row(Row::new(vec![TableCell::new_with_alignment(
+            main_header,
+            2,
+            term_table::table_cell::Alignment::Center,
+        )]));
+
         for col in &self.0 {
-            // create a new FeatureMap for the collection
-            let mut feature_map: FeatureMap = FeatureMap::new();
-            feature_map.insert("Yeet", json!(col.rules));
-            output.push_str(&BinTable::parse(&col.name, feature_map));
+            // add subheader
+            table.add_row(Row::new(vec![TableCell::new_with_alignment(
+                &col.to_string(),
+                2,
+                term_table::table_cell::Alignment::Left,
+            )]));
+
+            // add columns with checks, reimplementation of `BinTable` parser
+            for (name, feature) in &col.rules {
+                // format display based on content
+                let feature_cell = match feature {
+                    true => TableCell::new_with_alignment("✔️".green(), 1, Alignment::Center),
+                    false => TableCell::new_with_alignment("✖️".red(), 1, Alignment::Center),
+                };
+
+                table.add_row(Row::new(vec![TableCell::new(name), feature_cell]));
+            }
         }
-        output
+        table.render()
     }
 }
 

@@ -23,7 +23,7 @@ The current upstream crate is `0.2.0`, while this repository is on its way to `1
 * [ ] Finalize checks for PE and MachO
 * [ ] Kernel checks for macOS and Windows
 * [ ] Add CSV/XML serialization
-* [ ] UX improvements
+* [x] UX improvements
 
 ## Introduction
 
@@ -47,7 +47,9 @@ While it is able to detect the usual binary hardening features across executable
 
 ### Installation
 
-__binsec__ can be installed simply through the `cargo` package manager:
+The only necessary external dependency for __binsec__ is `yara` installed through your package manager. __binsec__ is _not_ using Rust bindings to YARA, since it is currently supporting a much older version. This should only be temporary!
+
+Once done, __binsec__ can be installed simply through the `cargo` package manager:
 
 ```
 $ cargo install binsec

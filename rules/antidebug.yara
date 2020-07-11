@@ -3,7 +3,8 @@
 
 import "pe"
 
-rule AntiDebugCalls {
+rule AntiDebugCalls
+{
 	meta:
         name = "Anti-Debug Calls"
         description = "Format-agnostic checks to determine if binary is try to check for debuggers"

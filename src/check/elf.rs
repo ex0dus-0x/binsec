@@ -55,9 +55,9 @@ pub enum Relro {
 impl ToString for Relro {
     fn to_string(&self) -> String {
         match self {
-            Relro::FullRelro => "Full RELRO".to_string(),
-            Relro::PartialRelro => "Partial RELRO".to_string(),
-            Relro::NoRelro => "No RELRO".to_string(),
+            Relro::FullRelro => "FULL".to_string(),
+            Relro::PartialRelro => "PARTIAL".to_string(),
+            Relro::NoRelro => "NONE".to_string(),
         }
     }
 }
