@@ -5,7 +5,6 @@
 //! * JSON
 //! * TOML
 
-use crate::check::FeatureMap;
 use crate::detect::Detector;
 use crate::errors::BinResult;
 
@@ -15,6 +14,41 @@ use term_table::{
     table_cell::{Alignment, TableCell},
 };
 use term_table::{Table, TableStyle};
+
+use std::collections::BTreeMap;
+
+/// Aliases a finalized output type for a detector, storing all the checks that
+/// were performed and their results for consumption by a `BinTable` for creating a table.
+pub type FeatureMap = BTreeMap<&'static str, serde_json::Value>;
+
+/// Helper struct that helps convert a `FeatureMap` into a normalized ASCII table
+pub struct BinTable;
+
+impl BinTable {
+    /// initializes a stringified version of the ASCII table given a table name and a `FeatureMap`.
+    pub fn parse(name: &str, mapping: FeatureMap) -> String {
+        // initialize blank style term table
+        let mut table = Table::new();
+        table.max_column_width = 60;
+        table.style = TableStyle::blank();
+
+        // create bolded header
+        table.add_row(Row::new(vec![TableCell::new_with_alignment(
+            name.bold().underline(),
+            2,
+            Alignment::Center,
+        )]));
+
+        // add features to table
+        for (name, feature) in mapping {
+            table.add_row(Row::new(vec![
+                TableCell::new(name),
+                TableCell::new_with_alignment(feature, 1, Alignment::Right),
+            ]));
+        }
+        table.render()
+    }
+}
 
 /// Defines the output format variants that are supported by binsec. Enforces a uniform `dump()`
 /// function to perform serialization to the respective format when outputting back to user.
@@ -26,61 +60,34 @@ pub enum BinFormat {
 
 impl BinFormat {
     #[inline]
-    fn add_header(table: &mut Table, header_name: &str) {
-        table.add_row(Row::new(vec![TableCell::new_with_alignment(
-            header_name.bold().underline(),
-            2,
-            Alignment::Center,
-        )]));
-    }
-
-    #[inline]
-    fn generate_rows(table: &mut Table, mapping: FeatureMap) {
-        for (name, feature) in mapping {
-            table.add_row(Row::new(vec![
-                TableCell::new(name),
-                TableCell::new_with_alignment(feature, 1, Alignment::Right),
-            ]));
-        }
-    }
-
-    #[inline]
     fn make_normal(input: &Detector) -> String {
-        // initialize blank style term table
-        let mut basic_table = Table::new();
-        basic_table.max_column_width = 60;
-        basic_table.style = TableStyle::blank();
+        // finalized output string
+        let mut output: String = String::new();
 
         // check if basic information specified
         if let Some(info) = &input.bin_info {
-            BinFormat::add_header(&mut basic_table, "Basic Information");
-            BinFormat::generate_rows(&mut basic_table, info.dump_mapping());
+            output.push_str(&info.output());
         }
 
         // check if kernel checks were specified
         if let Some(kernchecks) = &input.kernel_features {
-            BinFormat::add_header(&mut basic_table, "Host Kernel Checks");
-            BinFormat::generate_rows(&mut basic_table, kernchecks.dump_mapping());
+            output.push_str(&kernchecks.output());
         }
 
         // check if hardening checks were specified
         if let Some(harden_checks) = &input.harden_features {
-            BinFormat::add_header(&mut basic_table, "Binary Hardening Checks");
-            BinFormat::generate_rows(&mut basic_table, harden_checks.dump_mapping());
+            output.push_str(&harden_checks.output());
         }
 
         // check if enhanced checks were specified
         if let Some(rule_checks) = &input.rule_features {
-            BinFormat::add_header(&mut basic_table, "Enhanced (YARA) Checks");
-            BinFormat::generate_rows(&mut basic_table, rule_checks.dump_mapping());
+            output.push_str(&rule_checks.output());
         }
-
-
-        basic_table.render()
+        output
     }
 
-    /// constructs a printable string for respective output format for display or persistent
-    /// storage by consuming a ``.
+    /// Constructs a printable string for respective output format for display or persistent
+    /// storage by consuming a `Detector`.
     pub fn dump(&self, input: Detector) -> BinResult<String> {
         match self {
             BinFormat::Normal => Ok(BinFormat::make_normal(&input)),

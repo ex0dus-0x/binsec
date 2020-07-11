@@ -2,17 +2,18 @@
 //! implement a foreign function interface directly with the system-installed YARA library component,
 //! this is used instead since the currently available Rust bindings to YARA only support up to 3.11.
 
+use crate::check::FeatureCheck;
 use crate::errors::{BinError, BinResult, ErrorKind};
-use crate::check::{FeatureCheck, FeatureMap};
+use crate::format::{BinTable, FeatureMap};
 
+use colored::*;
 use serde::{Deserialize, Serialize};
-//use serde_json::json;
+use serde_json::json;
 
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
-use std::collections::BTreeMap;
-
 
 /// A `YaraCollection` is denoted as a single file in a ruleset that stores all of the rules
 /// grouped together for the type of analysis being done. Each file that is apart of the
@@ -29,9 +30,7 @@ pub struct YaraCollection {
     rules: BTreeMap<String, bool>,
 }
 
-
 impl YaraCollection {
-
     /// Given a path to YARA file, parse it and create a `YaraMatch` to be represented
     fn parse(path: PathBuf) -> BinResult<Self> {
         // open and read file into string
@@ -74,23 +73,28 @@ impl YaraCollection {
     }
 }
 
-
 /// Represents a strongly typed collection of YARA rules, and their statuses when executed against a binary.
 /// This is to be what ends up being serialized and returned to the user, or displayed as a table.
 #[derive(Deserialize, Serialize, Debug, Default)]
 pub struct YaraMatches(Vec<YaraCollection>);
 
-
 #[typetag::serde]
 impl FeatureCheck for YaraMatches {
-
-    // TODO: fix up
-    fn dump_mapping(&self) -> FeatureMap {
-        let features: FeatureMap = FeatureMap::new();
-        features
+    fn output(&self) -> String {
+        let mut output: String = String::new();
+        output.push_str(&format!(
+            "{}\n\n",
+            "Enhanced (YARA) Checks{}".bold().underline()
+        ));
+        for col in &self.0 {
+            // create a new FeatureMap for the collection
+            let mut feature_map: FeatureMap = FeatureMap::new();
+            feature_map.insert("Yeet", json!(col.rules));
+            output.push_str(&BinTable::parse(&col.name, feature_map));
+        }
+        output
     }
 }
-
 
 /// Defines a builder executor that calls yara directly through the command line rather than bindings,
 /// and is able to consume rules and executables to match those rules against. The output format
@@ -101,7 +105,6 @@ pub struct YaraExecutor {
     pub rules: Vec<PathBuf>,
     pub matches: YaraMatches,
 }
-
 
 impl YaraExecutor {
     /// Instantiates a new executor with no rules and executable to match against.
@@ -114,7 +117,6 @@ impl YaraExecutor {
 
     /// Add a rule to test against an executable, and parse it for correlation.
     pub fn add_rule(&mut self, rule: PathBuf) -> BinResult<()> {
-
         // store path to rule for later command reconstruction
         let _rule = rule.clone();
         self.rules.push(_rule);
@@ -133,10 +135,12 @@ impl YaraExecutor {
 
         // construct arguments to commands
         command.arg("--no-warnings");
-        command.arg(exec_name);
         for rule in &self.rules {
             command.arg(rule);
         }
+
+        // append binary name at end
+        command.arg(exec_name);
 
         // execute command against the binary and error-check
         let _output = command.output().map_err(|e| BinError {
@@ -152,26 +156,31 @@ impl YaraExecutor {
                 let _lines: Vec<&str> = out.lines().collect();
 
                 // iterate over each line, parse out rule from
-                let lines: Vec<String> = _lines.iter()
+                let lines: Vec<String> = _lines
+                    .iter()
                     .map(|l| {
+                        // split and recover rule name matched
                         let _split = l.split(exec_name);
                         let split: Vec<&str> = _split.collect();
-                        split[0].to_string()
+
+                        // cleanup and remove any trailing whitespace
+                        let mut res = split[0].to_string();
+                        res.retain(|c| !c.is_whitespace());
+                        res
                     })
                     .collect();
 
                 Ok(lines)
-            },
-            Err(_e) => {
-                Err(BinError {
-                    kind: ErrorKind::RuleEngineError,
-                    msg: "cannot parse output from YARA execution".to_string(),
-                })
-            },
+            }
+            Err(_e) => Err(BinError {
+                kind: ErrorKind::RuleEngineError,
+                msg: "cannot parse output from YARA execution".to_string(),
+            }),
         }
     }
 
-
+    /// Executes given a ruleset and a target binary to check against. Stores and mutates results
+    /// in the `YaraExecutor.matches` attribute to represent checks done.
     pub fn execute(&mut self) -> BinResult<()> {
         // if empty ruleset, return error
         if self.rules.is_empty() {
@@ -187,7 +196,7 @@ impl YaraExecutor {
 
         // parse results, and set respective
         // TODO: very ugly, cleanup
-        if result.is_empty() {
+        if !result.is_empty() {
             for res in result.iter() {
                 for ymatches in &mut self.matches.0 {
                     if ymatches.rules.contains_key(res) {

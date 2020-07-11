@@ -11,7 +11,8 @@ use goblin::pe::PE;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::check::{Checker, FeatureCheck, FeatureMap};
+use crate::check::{Checker, FeatureCheck};
+use crate::format::{BinTable, FeatureMap};
 
 use std::boxed::Box;
 
@@ -25,12 +26,12 @@ pub struct PeInfo {
 
 #[typetag::serde]
 impl FeatureCheck for PeInfo {
-    fn dump_mapping(&self) -> FeatureMap {
+    fn output(&self) -> String {
         let mut features: FeatureMap = FeatureMap::new();
         features.insert("Machine", json!(self.machine));
         features.insert("Number of Sections", json!(self.num_sections));
         features.insert("Timestamp", json!(self.timestamp));
-        features
+        BinTable::parse("Basic Information", features)
     }
 }
 
@@ -41,9 +42,9 @@ pub struct PeChecker {}
 
 #[typetag::serde]
 impl FeatureCheck for PeChecker {
-    fn dump_mapping(&self) -> FeatureMap {
+    fn output(&self) -> String {
         let features: FeatureMap = FeatureMap::new();
-        features
+        BinTable::parse("Binary Hardening Checks", features)
     }
 }
 

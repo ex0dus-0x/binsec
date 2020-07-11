@@ -76,8 +76,10 @@ fn run(args: ArgMatches) -> BinResult<()> {
     let (harden, kern, rule): (bool, bool, bool) = match args.values_of("check") {
         Some(_checks) => {
             let checks: Vec<_> = _checks.collect();
-            if checks.iter().any(|&arg| arg == "all") { (true, true, true) } else {
-                 let res: Vec<bool> = vec!["harden", "kernel", "enhanced"]
+            if checks.iter().any(|&arg| arg == "all") {
+                (true, true, true)
+            } else {
+                let res: Vec<bool> = vec!["harden", "kernel", "enhanced"]
                     .iter()
                     .map(|&f| checks.iter().any(|&arg| arg == f))
                     .collect::<Vec<bool>>();

@@ -22,7 +22,7 @@ rule UPX
 {
     meta:
 		name = "UPX"
-        description = "Platform-agnostic rule for detecting UPX packed executables"
+        description = "Format-agnostic rule for detecting UPX packed executables"
 
     strings:
         $mz = "MZ"
@@ -43,7 +43,7 @@ rule PyInstaller
 {
     meta:
         name = "PyInstaller"
-        description = "Platform-agnostic rule to check if packed with pyinstaller"
+        description = "Format-agnostic rule to check if packed with pyinstaller"
         link = "https://github.com/Yara-Rules/rules/blob/master/malware/MALW_Pyinstaller.yar"
 
     strings:
