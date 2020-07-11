@@ -1,4 +1,6 @@
 // Name: Anti-Virtualization
+// Description: Checks deployed to determine if binary is making any calls that might represent anti-VM detection.
+
 
 rule GenericVMDetect
 {
