@@ -64,8 +64,10 @@ impl BinFormat {
         }
 
         // add in hardening checks
-        BinFormat::add_header(&mut basic_table, "Binary Hardening Checks");
-        BinFormat::generate_rows(&mut basic_table, input.harden_features.dump_mapping());
+        if let Some(harden_checks) = &input.harden_features {
+            BinFormat::add_header(&mut basic_table, "Binary Hardening Checks");
+            BinFormat::generate_rows(&mut basic_table, harden_checks.dump_mapping());
+        }
         basic_table.render()
     }
 
