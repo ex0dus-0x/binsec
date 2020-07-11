@@ -3,25 +3,19 @@
 //! needed to properly do all security mitigation detections per platform.
 
 pub mod elf;
+pub mod kernel;
 pub mod mach;
 pub mod pe;
 
-pub mod kernel;
-
 use std::boxed::Box;
-use std::collections::BTreeMap;
-
-// aliases a finalized output type for a detector, storing all the checks that
-// were performed and their results.
-pub type FeatureMap = BTreeMap<&'static str, serde_json::Value>;
 
 /// trait to genericize associative structs that store information, which can be de/serialized and
-/// can also dump out a `FeatureMap` mapping with all of its attributes.
+/// can also dump out an output with all of its attributes.
 #[typetag::serde(tag = "type")]
 pub trait FeatureCheck {
-    /// generate a mapping given a checked set of features stored
-    /// WIP: procedural macro for automatically convering structs to map types
-    fn dump_mapping(&self) -> FeatureMap;
+    /// generate an output for display given a checked set of features stored
+    /// WIP: procedural macro for automatically converting structs to map types
+    fn output(&self) -> String;
 }
 
 /// trait that is implemented in order to extend libgoblin's functionality to detect binary
