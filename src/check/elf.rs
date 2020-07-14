@@ -7,8 +7,10 @@
 //! * Position-Independent Executable
 //! * Full/Partial RELRO
 //! * Runpath
+//! * Address Sanitizer
+//! * Undefined Behavior Sanitizer
 
-use goblin::elf::dynamic::{tag_to_str, Dyn};
+use goblin::elf::dynamic::{tag_to_str, Dyn, DT_RUNPATH};
 use goblin::elf::{header, program_header, Elf, ProgramHeader};
 
 use serde::{Deserialize, Serialize};
@@ -68,10 +70,12 @@ impl ToString for Relro {
 struct ElfChecker {
     pub exec_stack: bool,
     pub stack_canary: bool,
-    pub fortify_source: bool,
     pub pie: bool,
     pub relro: Relro,
+    pub fortify_source: bool,
     pub runpath: Vec<String>,
+    pub asan: bool,
+    pub ubsan: bool,
 }
 
 // extend with trait to enable generic return in Checker trait implementation, and provide
@@ -82,6 +86,8 @@ impl FeatureCheck for ElfChecker {
     /// consumption with a specific output format
     fn output(&self) -> String {
         let mut features: FeatureMap = FeatureMap::new();
+
+        // features will be displayed regardless of presence in binary
         features.insert("Executable Stack (NX Bit)", json!(self.exec_stack));
         features.insert("Stack Canary", json!(self.stack_canary));
         features.insert("FORTIFY_SOURCE", json!(self.fortify_source));
@@ -90,6 +96,18 @@ impl FeatureCheck for ElfChecker {
             "Read-Only Relocatables (RELRO)",
             json!(self.relro.to_string()),
         );
+
+        // features added only if found and parsed
+        if !self.runpath.is_empty() {
+            features.insert("Runpath", json!(self.runpath.join(" ")));
+        }
+        if self.asan {
+            features.insert("ASan", json!(self.asan));
+        }
+        if self.ubsan {
+            features.insert("UBSan", json!(self.ubsan));
+        }
+
         BinTable::parse("Binary Hardening Checks", features)
     }
 }
@@ -140,6 +158,26 @@ impl Checker for Elf<'_> {
                 _ => false,
             });
 
+        // check for ASan calls
+        let asan: bool = self
+            .dynsyms
+            .iter()
+            .filter_map(|sym| self.dynstrtab.get(sym.st_name))
+            .any(|name| match name {
+                Ok(e) => e.starts_with("__asan"),
+                _ => false,
+            });
+
+        // check for UBSan calls
+        let ubsan: bool = self
+            .dynsyms
+            .iter()
+            .filter_map(|sym| self.dynstrtab.get(sym.st_name))
+            .any(|name| match name {
+                Ok(e) => e.starts_with("__ubsan"),
+                _ => false,
+            });
+
         // check for position-independent executable
         let pie: bool = match self.header.e_type {
             3 => true,
@@ -153,7 +191,7 @@ impl Checker for Elf<'_> {
             .find(|ph| program_header::pt_to_str(ph.p_type) == "PT_GNU_RELRO")
             .cloned();
 
-        // TODO: make functional or get rid of nested bullshit
+        // check for full or partial RELRO
         let mut relro: Relro = Relro::NoRelro;
         match relro_header {
             Some(_rh) => {
@@ -178,13 +216,32 @@ impl Checker for Elf<'_> {
             }
         };
 
+        // get paths specified in DT_RUNPATH
+        let runpath: Vec<String> = match &self.dynamic {
+            Some(dynamic) => {
+                let mut res_vec: Vec<String> = vec![];
+                for dy in &dynamic.dyns {
+                    if dy.d_tag == DT_RUNPATH {
+                        let val = self.dynstrtab.get(dy.d_val as usize);
+                        if let Some(Ok(name)) = val {
+                            res_vec = name.split(':').map(|x| x.to_string()).collect();
+                        }
+                    }
+                }
+                res_vec
+            }
+            None => vec![],
+        };
+
         Box::new(ElfChecker {
             exec_stack,
             stack_canary,
             fortify_source,
             pie,
             relro,
-            runpath: Vec::new(),
+            runpath,
+            asan,
+            ubsan,
         })
     }
 }
