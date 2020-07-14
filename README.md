@@ -20,19 +20,20 @@ Swiss Army Knife for Binary (In)security
 The current upstream crate is `0.2.0`, while this repository is on its way to `1.0.0`. Here's what's left:
 
 * [x] Finalize YARA rule engine
+* [x] UX improvements
 * [ ] Finalize checks for PE and MachO
 * [ ] Kernel checks for macOS and Windows
-* [ ] Add CSV/XML serialization
-* [x] UX improvements
 
 ## Introduction
 
 __binsec__ is a portable and cross-platform utility for detecting security mitigations across ELF, PE and mach-O executable formats.
-While it is able to detect the usual binary hardening features across executables, it can also check for more advanced security enhacenements, from kernel configurations to its own subset of YARA-based "adversarial" checks.
+While it is able to detect the usual binary hardening features across executables, it can also check for more advanced security enhacenements, from kernel configurations to its own subset of YARA-based "enhanced" checks.
 
 ## Features
 
 * Robust checks for a wide variety of security mitigations across ELF/PE/Mach-O binaries.
+    * Contains YARA-based enhanced checks for deeper binary insight
+    * Supports host-based kernel security checks for system insight
 * Backends [libgoblin](https://github.com/m4b/goblin) for efficient and cross-platform binary parsing.
 * Can generate serializable outputs for JSON and TOML formats for storage/logging consumption.
 
@@ -65,7 +66,7 @@ binary format being used:
 ```
 $ binsec ./out.elf
 
-[*] ./out.elf
+[*] Name: ./out.elf
 
               Binary Hardening Checks
 
@@ -85,11 +86,11 @@ You can specify more than one binaries, and a detector will be used on each one:
 ```
 $ binsec ./another.mach ./out.elf
 
-[*] ./another.mach
+[*] Name: ./another.mach
 
 ...
 
-[*] ./out.elf
+[*] Name: ./out.elf
 
 ...
 ```
@@ -110,7 +111,8 @@ $ binsec --info ./file
  File Class                                "ELF64"
 ```
 
-You can also export this information through serialization, either as a JSON or TOML file:
+You can also export this information through serialization, either as a JSON or TOML file. Keep in mind that any checks that are excluded from
+the terminal-based display will show up serialized:
 
 ```
 $ binsec --format=json ./file
@@ -125,23 +127,24 @@ $ binsec --format=json ./file
     "fortify_source": false,
     "pie": true,
     "relro": "FullRelro",
-    "runpath": []
+    "runpath": [],
+    "asan": false,
+    "ubsan": false,
   }
 }
 ```
 
 ## Contributing
 
-This is still a work-in-progress! You can contribute by catching issues and bugs
+This is something that is continually being developed! You can contribute by catching issues and bugs
 and submitting them through the [issue tracker](https://github.com/ex0dus-0x/binsec/issues) or
 making a pull request!
 
 ## Other Projects:
 
-* hardening-check
-* checksec.sh
-* winchecksec
-* pwntools / checksec
+* [hardening-check](http://manpages.ubuntu.com/manpages/trusty/man1/hardening-check.1.html)
+* [checksec.rs](https://github.com/etke/checksec.rs)
+* [winchecksec](https://github.com/trailofbits/winchecksec)
 
 ## License
 
