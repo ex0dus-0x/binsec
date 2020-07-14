@@ -22,7 +22,7 @@ lto = true
 clap = "2.33.1"
 
 term-table = "1.3.0"
-colored = "1.9.3"
+colored = "2.0.0"
 
 goblin = "0.2.3"
 typetag = "0.1"
