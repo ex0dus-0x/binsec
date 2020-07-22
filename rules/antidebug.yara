@@ -8,20 +8,27 @@ rule AntiDebugCalls
 	meta:
         name = "Anti-Debug Calls"
         description = "Format-agnostic checks to determine if binary is try to check for debuggers"
-		link = "https://github.com/naxonez/yaraRules/blob/master/AntiDebugging.yara"
 
 	strings:
 
-        ///////////////////////////
-        // Unix-specific strings (TODO)
-        ///////////////////////////
+        //////////////////////
+        // Unix-specific Calls
+        //////////////////////
 
-        $unix2 = "PTRACE_TRACEME"
+        // TODO: test more, see which variant to use
+
+        // shellcode setting up a PTRACE_TRACEME call with `ptrace`
+        $unix1 = { b9 00 00 00 00 ba 01 00 00 00 be 00 00 00 00 bf 00 00 00 00 b8 00 00 00 00 e8 d5 fe ff ff }
+        $unix2 = { E8 D5 FE FF FF }
+
+        // shellcode indirectly doing a PTRACE_TRACEME call with `syscall`
+        $unix3 = { b9 01 00 00 00 ba 00 00 00 00 be 00 00 00 00 bf 65 00 00 00 b8 00 00 00 00 e8 cf fe ff ff }
+        $unix4 = { E8 CF FE FF FF }
 
 
-        ///////////////////////////
-        // Windows-specific strings
-        ///////////////////////////
+        ////////////////////////////////////
+        // Windows-Specific Function Strings
+        ////////////////////////////////////
 
 		$win1 = "IsDebugged"
 		$win2 = "NtGlobalFlags"
@@ -41,11 +48,6 @@ rule AntiDebugCalls
         $f8 = "winhex.exe" nocase
         $f9 = "processhacker.exe" nocase
         $f10 = "hiew32.exe" nocase
-        $c11 = "\\\\.\\NTICE"
-        $c12 = "\\\\.\\SICE"
-        $c13 = "\\\\.\\Syser"
-        $c14 = "\\\\.\\SyserBoot"
-        $c15 = "\\\\.\\SyserDbgMsg"
 
 	condition:
 		any of them

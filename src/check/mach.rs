@@ -4,7 +4,8 @@
 //! * NX (Non-eXecutable bit) stack
 //! * NX (Non-eXecutable bit) heap
 //! * Position-Independent Executable
-//! * Use of stack canaries
+//! * Stack Canaries
+//! * Restricted segment
 
 use goblin::mach::constants::cputype;
 use goblin::mach::header;
@@ -21,7 +22,7 @@ use std::boxed::Box;
 const MH_ALLOW_STACK_EXECUTION: u32 = 0x0002_0000;
 const MH_NO_HEAP_EXECUTION: u32 = 0x0100_0000;
 
-/// struct defining parsed info given a Mach-O binary format
+/// Struct defining parsed basic info from a Mach-O binary format
 #[derive(Deserialize, Serialize, Default)]
 pub struct MachInfo {
     pub machine: String,
@@ -46,9 +47,16 @@ impl FeatureCheck for MachInfo {
 /// derives serde de/serialize traits for structured output.
 #[derive(Deserialize, Serialize)]
 pub struct MachChecker {
+    // executable stack
     pub nx_stack: bool,
+
+    // executable heap
     pub nx_heap: bool,
+
+    // prevents out of bounds read/writes
     pub stack_canary: bool,
+
+    // restricted segment for code injection prevention
     pub restrict: bool,
 }
 
