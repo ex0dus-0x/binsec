@@ -68,13 +68,28 @@ impl ToString for Relro {
 /// security mitigation features.
 #[derive(Deserialize, Serialize)]
 struct ElfChecker {
+    // Executable stack
     pub exec_stack: bool,
+
+    // Use of stack canary
     pub stack_canary: bool,
+
+    // Position Independent Executable
     pub pie: bool,
+
+    // Read-Only Relocatable
     pub relro: Relro,
+
+    // FORTIFY_SOURCE
     pub fortify_source: bool,
+
+    // Runpath
     pub runpath: Vec<String>,
+
+    // Address Sanitizer
     pub asan: bool,
+
+    // Undefined Behavior Sanitizer
     pub ubsan: bool,
 }
 
@@ -91,7 +106,7 @@ impl FeatureCheck for ElfChecker {
         features.insert("Executable Stack (NX Bit)", json!(self.exec_stack));
         features.insert("Stack Canary", json!(self.stack_canary));
         features.insert("FORTIFY_SOURCE", json!(self.fortify_source));
-        features.insert("Position-Independent Executable", json!(self.pie));
+        features.insert("Position-Independent Executable / ASLR", json!(self.pie));
         features.insert(
             "Read-Only Relocatables (RELRO)",
             json!(self.relro.to_string()),

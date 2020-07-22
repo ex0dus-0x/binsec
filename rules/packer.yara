@@ -1,21 +1,7 @@
 // Name: Packer
-// Description: Checks for different types of packers used to create the executable
+// Description: Checks for different types of packers used to create the executable.
 
 import "pe"
-
-rule Movfuscator
-{
-    meta:
-		name = "Movfuscator"
-        description = "Detects use of the `mov`-based single-instruction obfuscator"
-        link = "https://insights.sei.cmu.edu/sei_blog/2012/11/writing-effective-yara-signatures-to-identify-malware.html"
-
-    strings:
-        $mov = { c6 45 [2] c6 45 [2] c6 45 [2] c6 45 }
-
-    condition:
-        all of them
-}
 
 
 rule UPX
@@ -25,17 +11,34 @@ rule UPX
         description = "Format-agnostic rule for detecting UPX packed executables"
 
     strings:
-        $mz = "MZ"
         $upx1 = {55505830000000}
         $upx2 = {55505831000000}
-        $upx_sig = "UPX!"
 
-        $str_upx1 = "UPX0"
-        $str_upx2 = "UPX1"
+        $upx_sig  = "UPX!" wide ascii
+        $str_upx2 = "UPX0" wide ascii
+        $str_upx3 = "UPX1" wide ascii
+        $str_upx4 = "UPX2" wide ascii
 
     condition:
-        $mz at 0 and $upx1 in (0..1024) and $upx2 in (0..1024) and $upx_sig in (0..1024) or
+        $upx1 in (0..1024) and $upx2 in (0..1024) and $upx_sig in (0..1024) or
         all of ($str_upx*)
+}
+
+
+rule ASPack
+{
+    meta:
+        name = "ASPack"
+        description = "Format-agnostic rule for detecting ASPack-packed exeutables"
+
+    strings:
+
+        // represents injected sections from packer
+        $aspack = ".aspack"
+        $asdata = ".asdata"
+
+    condition:
+        all of them
 }
 
 
