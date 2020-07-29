@@ -4,7 +4,7 @@
 //! * NX (Non-eXecutable bit) stack
 //! * Stack Canaries
 //! * FORTIFY_SOURCE
-//! * Position-Independent Executable
+//! * Position-Independent Executable / ASLR
 //! * Full/Partial RELRO
 //! * Runpath
 //! * Address Sanitizer

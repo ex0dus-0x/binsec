@@ -1,10 +1,9 @@
 //! Defines the `PE` security mitigation checker. Consumes an
 //! PE binary, parses it, and checks for the following features:
 //!
-//! * Authenticode
-//! * Data Execution PRevention
-//! * ASLR
-//! * Dynamic Base
+//! * Data Execution Prevention
+//! * Code Integrity
+//! * Control Flow Guard
 
 use goblin::pe::PE;
 
@@ -38,13 +37,20 @@ impl FeatureCheck for PeInfo {
 /// struct defining security features parsed from PE, and
 /// derives serde de/serialize traits for structured output.
 #[derive(Deserialize, Serialize)]
-pub struct PeChecker {}
+pub struct PeChecker {
+    pub dep: bool,
+    pub cfg: bool,
+    pub code_integrity: bool,
+}
 
 #[typetag::serde]
 impl FeatureCheck for PeChecker {
     fn output(&self) -> String {
-        let features: FeatureMap = FeatureMap::new();
-        BinTable::parse("Binary Hardening Checks", features)
+        let mut features: FeatureMap = FeatureMap::new();
+        features.insert("Data Execution Prevention", json!(self.dep));
+        features.insert("Control Flow Guard", json!(self.cfg));
+        features.insert("Code Integrity", json!(self.code_integrity));
+        BinTable::parse("Basic Information", features)
     }
 }
 
@@ -58,8 +64,36 @@ impl Checker for PE<'_> {
         })
     }
 
-    /// implements the necesary checks for the security mitigations for the specific file format.
+    /// implements the necesary checks for the security mitigations of the specific file format.
     fn harden_check(&self) -> Box<dyn FeatureCheck> {
-        Box::new(PeChecker {})
+        // check for DEP aka stack exec protection by checking the DLL characteristics
+        let dep: bool = match self.header.optional_header {
+            Some(optional_header) => {
+                optional_header.windows_fields.dll_characteristics & 0x0100 == 0
+            }
+            None => false,
+        };
+
+        // Check for control flow guard
+        let cfg: bool = match self.header.optional_header {
+            Some(optional_header) => {
+                optional_header.windows_fields.dll_characteristics & 0x4000 == 0
+            }
+            None => false,
+        };
+
+        // Code integrity enabled
+        let code_integrity: bool = match self.header.optional_header {
+            Some(optional_header) => {
+                optional_header.windows_fields.dll_characteristics & 0x0080 == 0
+            }
+            None => false,
+        };
+
+        Box::new(PeChecker {
+            dep,
+            cfg,
+            code_integrity,
+        })
     }
 }
