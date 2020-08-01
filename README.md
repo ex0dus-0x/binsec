@@ -15,34 +15,24 @@
 
 Swiss Army Knife for Binary (In)security
 
-## Roadmap to 1.0.0 Release
-
-The current upstream crate is `0.2.0`, while this repository is on its way to `1.0.0`. Here's what's left:
-
-* [x] Finalize YARA rule engine
-* [x] UX improvements
-* [ ] Finalize checks for PE and MachO
-* [ ] Kernel checks for macOS and Windows
-
 ## Introduction
 
-__binsec__ is a portable and cross-platform utility for detecting security mitigations across ELF, PE and mach-O executable formats.
-While it is able to detect the usual binary hardening features across executables, it can also check for more advanced security enhacenements, from kernel configurations to its own subset of YARA-based "enhanced" checks.
+__binsec__ is a portable and cross-platform utility for detecting security mitigations across ELF, PE and mach-O executable formats. While it is able to detect the usual binary hardening features across executables, it can also check for more advanced security enhacenements, from kernel configurations to its own subset of YARA-based "enhanced" checks.
 
 ## Features
 
 * Robust checks for a wide variety of security mitigations across ELF/PE/Mach-O binaries.
-    * Contains YARA-based enhanced checks for deeper binary insight
-    * Supports host-based kernel security checks for system insight
+    * Contains YARA-based enhanced checks for deeper binary insight (ie. compiled language, anti-analysis, etc)
+    * Supports host-based kernel security checks for system insight (WIP: macOS and Windows)
 * Backends [libgoblin](https://github.com/m4b/goblin) for efficient and cross-platform binary parsing.
 * Can generate serializable outputs for JSON and TOML formats for storage/logging consumption.
 
 ## Use Cases
 
-* Use `binsec` as part of your security tooling when conducting black-box static analysis!
-* Incorporate `binsec` as part of your runtime analysis pipeline!
-* Build machine learning datasets from output for malware detection models!
-* Use in CTFs and wargames!
+* __Application Assessments__ - use as part of your security tooling when conducting black-box static analysis!
+* __Security infrastructure__ - incorporate as part of your runtime analysis pipeline!
+* __Malware Machine Learning__ - extract features for machine learning models for malware detection!
+* __CTFs and Wargames__ - help find security holes in crackmes for to exploit!
 
 ## How to Use
 
@@ -137,8 +127,7 @@ $ binsec --format=json ./file
 ## Contributing
 
 This is something that is continually being developed! You can contribute by catching issues and bugs
-and submitting them through the [issue tracker](https://github.com/ex0dus-0x/binsec/issues) or
-making a pull request!
+and submitting them through the [issue tracker](https://github.com/ex0dus-0x/binsec/issues) or making a pull request!
 
 ## Other Projects:
 
