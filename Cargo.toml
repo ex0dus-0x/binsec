@@ -19,7 +19,7 @@ lto = true
 
 [dependencies]
 
-clap = "2.33.1"
+clap = "2.33.2"
 
 term-table = "1.3.0"
 colored = "2.0.0"
