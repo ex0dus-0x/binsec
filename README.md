@@ -15,9 +15,11 @@
 
 Swiss Army Knife for Binary (In)security
 
+<img src="https://i.imgur.com/ELu2sgF.png">
+
 ## Introduction
 
-__binsec__ is a portable and cross-platform utility for detecting security mitigations across ELF, PE and mach-O executable formats. While it is able to detect the usual binary hardening features across executables, it can also check for more advanced security enhacenements, from kernel configurations to its own subset of YARA-based "enhanced" checks.
+__binsec__ is a portable and cross-platform utility for detecting security mitigations across ELF, PE and Mach-O executable formats. While it is able to detect the usual binary hardening features across executables, it can also check for more advanced security enhacenements, from kernel configurations to its own subset of YARA-based "enhanced" checks.
 
 ## Features
 
@@ -129,7 +131,7 @@ $ binsec --format=json ./file
 This is something that is continually being developed! You can contribute by catching issues and bugs
 and submitting them through the [issue tracker](https://github.com/ex0dus-0x/binsec/issues) or making a pull request!
 
-## Other Projects:
+## Similar Projects
 
 * [hardening-check](http://manpages.ubuntu.com/manpages/trusty/man1/hardening-check.1.html)
 * [checksec.rs](https://github.com/etke/checksec.rs)
