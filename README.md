@@ -19,13 +19,13 @@ Swiss Army Knife for Binary (In)security
 
 ## Introduction
 
-__binsec__ is a portable and cross-platform utility for detecting security mitigations across ELF, PE and Mach-O executable formats. While it is able to detect the usual binary hardening features across executables, it can also check for more advanced security enhacenements, from kernel configurations to its own subset of YARA-based "enhanced" checks.
+__binsec__ is a portable and cross-platform utility for detecting security mitigations across ELF, PE and Mach-O executable formats. While it is able to detect common binary hardening features (ie. no-exec stack, ASLR) across executables, it can also check for more advanced security features, from kernel-based protections to its own set of YARA-based "enhanced" features.
 
 ## Features
 
 * Robust checks for a wide variety of security mitigations across ELF/PE/Mach-O binaries.
-    * Contains YARA-based enhanced checks for deeper binary insight (ie. compiled language, anti-analysis, etc)
     * Supports host-based kernel security checks for system insight (WIP: macOS and Windows)
+    * Contains YARA-based enhanced checks for deeper binary insight (ie. compiled language, anti-analysis, etc)
 * Backends [libgoblin](https://github.com/m4b/goblin) for efficient and cross-platform binary parsing.
 * Can generate serializable outputs for JSON and TOML formats for storage/logging consumption.
 
@@ -57,23 +57,9 @@ binary format being used:
 
 ```
 $ binsec ./out.elf
-
-[*] Name: ./out.elf
-
-              Binary Hardening Checks
-
- Executable Stack (NX Bit)                    true
-
- FORTIFY_SOURCE                              false
-
- Position-Independent Executable              true
-
- Read-Only Relocatables (RELRO)       "Full RELRO"
-
- Stack Canary                                false
 ```
 
-You can specify more than one binaries, and a detector will be used on each one:
+You can specify more than one binary, and a detector will be run and display results on each one:
 
 ```
 $ binsec ./another.mach ./out.elf
@@ -103,13 +89,12 @@ $ binsec --info ./file
  File Class                                "ELF64"
 ```
 
-You can also export this information through serialization, either as a JSON or TOML file. Keep in mind that any checks that are excluded from
-the terminal-based display will show up serialized:
+You can also export this information through serialization, either as a JSON or TOML file. Keep in mind that any checks that are excluded from the terminal-based display will show up serialized:
 
 ```
-$ binsec --format=json ./file
+$ binsec --format=json ./out.elf
 
-[*] file
+[*] Name: out.elf
 
 {
   "harden_features": {
