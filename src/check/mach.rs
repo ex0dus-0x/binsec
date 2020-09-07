@@ -14,6 +14,9 @@ use goblin::mach::MachO;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
+use structmap::ToHashMap;
+use structmap_derive::ToHashMap;
+
 use crate::check::{Checker, FeatureCheck};
 use crate::format::{BinTable, FeatureMap};
 
@@ -23,53 +26,41 @@ const MH_ALLOW_STACK_EXECUTION: u32 = 0x0002_0000;
 const MH_NO_HEAP_EXECUTION: u32 = 0x0100_0000;
 
 /// Struct defining parsed basic info from a Mach-O binary format
-#[derive(Deserialize, Serialize, Default)]
+#[derive(Deserialize, Serialize, ToHashMap, Default)]
 pub struct MachInfo {
+    #[rename("Machine")]
     pub machine: String,
+
+    #[rename("File Type")]
     pub filetype: String,
+
+    #[rename("Flags")]
     pub flags: String,
+
+    #[rename("Number of Load Commands")]
     pub num_cmds: usize,
 }
 
-#[typetag::serde]
-impl FeatureCheck for MachInfo {
-    fn output(&self) -> String {
-        let mut features: FeatureMap = FeatureMap::new();
-        features.insert("Machine", json!(self.machine));
-        features.insert("Filetype", json!(self.filetype));
-        features.insert("Flags", json!(self.flags));
-        features.insert("Number of Load Commands", json!(self.num_cmds));
-        BinTable::parse("Basic Information", features)
-    }
-}
 
 /// struct defining security features parsed from PE, and
 /// derives serde de/serialize traits for structured output.
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToHashMap)]
 pub struct MachChecker {
     // executable stack
+    #[rename("Non-Executable Stack")]
     pub nx_stack: bool,
 
     // executable heap
+    #[rename("Non-Executable Heap")]
     pub nx_heap: bool,
 
     // prevents out of bounds read/writes
+    #[rename("Stack Canary")]
     pub stack_canary: bool,
 
     // restricted segment for code injection prevention
+    #[rename("__RESTRICT")]
     pub restrict: bool,
-}
-
-#[typetag::serde]
-impl FeatureCheck for MachChecker {
-    fn output(&self) -> String {
-        let mut features: FeatureMap = FeatureMap::new();
-        features.insert("Non-Executable Stack", json!(self.nx_stack));
-        features.insert("Non-Executable Heap", json!(self.nx_heap));
-        features.insert("Stack Canary", json!(self.stack_canary));
-        features.insert("Restrict Code Injection", json!(self.restrict));
-        BinTable::parse("Binary Hardening Checks", features)
-    }
 }
 
 impl Checker for MachO<'_> {

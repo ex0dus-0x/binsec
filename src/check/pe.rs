@@ -18,41 +18,31 @@ use std::boxed::Box;
 /// struct defining parsed info given a PE binary format
 #[derive(Deserialize, Serialize, Default)]
 pub struct PeInfo {
+    #[rename("Machine")]
     pub machine: u16,
+
+    #[rename("Number of Sections")]
     pub num_sections: u16,
+
+    #[rename("Timestamp")]
     pub timestamp: u32,
 }
 
-#[typetag::serde]
-impl FeatureCheck for PeInfo {
-    fn output(&self) -> String {
-        let mut features: FeatureMap = FeatureMap::new();
-        features.insert("Machine", json!(self.machine));
-        features.insert("Number of Sections", json!(self.num_sections));
-        features.insert("Timestamp", json!(self.timestamp));
-        BinTable::parse("Basic Information", features)
-    }
-}
 
 /// struct defining security features parsed from PE, and
 /// derives serde de/serialize traits for structured output.
 #[derive(Deserialize, Serialize)]
 pub struct PeChecker {
+    #[rename("Data Execution Prevention (DEP)")]
     pub dep: bool,
+
+    #[rename("Control Flow Guard (CFG)")]
     pub cfg: bool,
+
+    #[rename("Code Integrity")]
     pub code_integrity: bool,
 }
 
-#[typetag::serde]
-impl FeatureCheck for PeChecker {
-    fn output(&self) -> String {
-        let mut features: FeatureMap = FeatureMap::new();
-        features.insert("Data Execution Prevention", json!(self.dep));
-        features.insert("Control Flow Guard", json!(self.cfg));
-        features.insert("Code Integrity", json!(self.code_integrity));
-        BinTable::parse("Basic Information", features)
-    }
-}
 
 impl Checker for PE<'_> {
     /// parses out basic binary information and stores for consumption and output.
