@@ -16,34 +16,30 @@ use goblin::elf::{header, program_header, Elf, ProgramHeader};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
+use structmap::ToHashMap;
+use structmap_derive::ToHashMap;
+
 use crate::check::{Checker, FeatureCheck};
 use crate::format::{BinTable, FeatureMap};
 
 use std::boxed::Box;
 
 /// defines basic information parsed out from an ELF binary
-#[derive(Deserialize, Serialize, Default)]
+#[derive(Deserialize, Serialize, ToHashMap, Default)]
 pub struct ElfInfo {
+    #[rename("Architecture")]
     pub machine: String,
+
+    #[rename("File Class")]
     pub file_class: String,
+
+    #[rename("Binary Type")]
     pub bin_type: String,
+
+    #[rename("Entry Point Address")]
     pub entry_point: u64,
 }
 
-// extend with trait to enable generic return in Checker trait implementation
-#[typetag::serde]
-impl FeatureCheck for ElfInfo {
-    /// converts the checked security mitigations into an associative container for output
-    /// consumption with a specific output format.
-    fn output(&self) -> String {
-        let mut features: FeatureMap = FeatureMap::new();
-        features.insert("Architecture", json!(self.machine));
-        features.insert("File Class", json!(self.file_class));
-        features.insert("Binary Type", json!(self.bin_type));
-        features.insert("Entry Point Address", json!(self.entry_point));
-        BinTable::parse("Basic Information", features)
-    }
-}
 
 /// specifies type of relocation read-only, which defines how dynamic relocations
 /// are resolved as a security feature against GOT/PLT attacks.
@@ -66,66 +62,41 @@ impl ToString for Relro {
 
 /// encapsulates an ELF object from libgoblin, in order to parse it and dissect out the necessary
 /// security mitigation features.
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToHashMap)]
 struct ElfChecker {
     // Executable stack
+    #[rename("Executable Stack (NX Bit)")]
     pub exec_stack: bool,
 
     // Use of stack canary
+    #[rename("Executable Stack (NX Bit)")]
     pub stack_canary: bool,
 
     // Position Independent Executable
+    #[rename("Position Independent Executable / ASLR")]
     pub pie: bool,
 
     // Read-Only Relocatable
+    #[rename("Read-Only Relocatable")]
     pub relro: Relro,
 
     // FORTIFY_SOURCE
+    #[rename("FORTIFY_SOURCE")]
     pub fortify_source: bool,
 
     // Runpath
+    #[rename("Runpath")]
     pub runpath: Vec<String>,
 
     // Address Sanitizer
+    #[rename("ASan")]
     pub asan: bool,
 
     // Undefined Behavior Sanitizer
+    #[rename("UBSan")]
     pub ubsan: bool,
 }
 
-// extend with trait to enable generic return in Checker trait implementation, and provide
-// facilities for dumping out as a genericized FeatureMap
-#[typetag::serde]
-impl FeatureCheck for ElfChecker {
-    /// converts the checked security mitigations into an associative container for output
-    /// consumption with a specific output format
-    fn output(&self) -> String {
-        let mut features: FeatureMap = FeatureMap::new();
-
-        // features will be displayed regardless of presence in binary
-        features.insert("Executable Stack (NX Bit)", json!(self.exec_stack));
-        features.insert("Stack Canary", json!(self.stack_canary));
-        features.insert("FORTIFY_SOURCE", json!(self.fortify_source));
-        features.insert("Position-Independent Executable / ASLR", json!(self.pie));
-        features.insert(
-            "Read-Only Relocatables (RELRO)",
-            json!(self.relro.to_string()),
-        );
-
-        // features added only if found and parsed
-        if !self.runpath.is_empty() {
-            features.insert("Runpath", json!(self.runpath.join(" ")));
-        }
-        if self.asan {
-            features.insert("ASan", json!(self.asan));
-        }
-        if self.ubsan {
-            features.insert("UBSan", json!(self.ubsan));
-        }
-
-        BinTable::parse("Binary Hardening Checks", features)
-    }
-}
 
 impl Checker for Elf<'_> {
     /// parses out basic binary information and stores for consumption and output.

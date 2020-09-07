@@ -19,6 +19,9 @@ use crate::format::{BinTable, FeatureMap};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
+use structmap::ToHashMap;
+use structmap_derive::ToHashMap;
+
 use sysctl::Sysctl;
 
 use std::fs;
@@ -36,7 +39,7 @@ enum Aslr {
 
 /// defines the type of restriction being used on calls to `ptrace` when doing
 /// any type of process introspection.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, ToHashMap, Debug)]
 enum PtraceScope {
     Classic,
     Restricted,
@@ -45,37 +48,34 @@ enum PtraceScope {
     None,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, ToHashMap)]
 pub struct LinuxKernelChecker {
+    #[rename("AppArmor")]
     apparmor: bool,
-    ptrace_scope: PtraceScope,
-    aslr: bool, // TODO: aslr type
-    kaslr: bool,
-    dev_mem_protected: bool,
-    dev_kmem_access: bool,
-    ro_kernel_sections: bool,
-    ro_kernel_modules: bool,
-    kernel_stack_protector: bool,
-}
 
-#[typetag::serde]
-impl FeatureCheck for LinuxKernelChecker {
-    fn output(&self) -> String {
-        let mut feature_map = FeatureMap::new();
-        feature_map.insert("AppArmor", json!(self.apparmor));
-        feature_map.insert("Ptrace Scope", json!(self.ptrace_scope));
-        feature_map.insert("ASLR", json!(self.aslr));
-        feature_map.insert("kASLR", json!(self.kaslr));
-        feature_map.insert("/dev/mem protection", json!(self.dev_mem_protected));
-        feature_map.insert("/dev/kmem access", json!(self.dev_kmem_access));
-        feature_map.insert("Read-only data sections", json!(self.ro_kernel_sections));
-        feature_map.insert(
-            "Read-only Linux kernel modules",
-            json!(self.ro_kernel_modules),
-        );
-        feature_map.insert("Kernel Stack Protector", json!(self.kernel_stack_protector));
-        BinTable::parse("Host Kernel Checks (Linux)", feature_map)
-    }
+    #[rename("Ptrace Scope")]
+    ptrace_scope: PtraceScope,
+
+    #[rename("ASLR")]
+    aslr: bool, // TODO: aslr type
+
+    #[rename("kASLR")]
+    kaslr: bool,
+
+    #[rename("/dev/mem protection")]
+    dev_mem_protected: bool,
+
+    #[rename("/dev/kmem protection")]
+    dev_kmem_access: bool,
+
+    #[rename("Read-only data sections")]
+    ro_kernel_sections: bool,
+
+    #[rename("Read-only kernel modules")]
+    ro_kernel_modules: bool,
+
+    #[rename("Kernel Stack Protector")]
+    kernel_stack_protector: bool,
 }
 
 impl KernelCheck for LinuxKernelChecker {
