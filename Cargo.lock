@@ -64,7 +64,7 @@ dependencies = [
  "colored 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "goblin 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "platforms 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "procfs 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "procfs 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.115 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.57 (registry+https://github.com/rust-lang/crates.io-index)",
  "sysctl 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -303,7 +303,7 @@ dependencies = [
 
 [[package]]
 name = "procfs"
-version = "0.8.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -625,7 +625,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum plain 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 "checksum platforms 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "feb3b2b1033b8a60b4da6ee470325f887758c95d5320f52f9ce0df055a55940e"
 "checksum proc-macro2 1.0.19 (registry+https://github.com/rust-lang/crates.io-index)" = "04f5f085b5d71e2188cb8271e5da0161ad52c3f227a661a3c135fdf28e258b12"
-"checksum procfs 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1d7e5e6454760047a63937e70a5143d3f7260b2fdad73fe7b30a83f499383012"
+"checksum procfs 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)" = "c4a336c8310f4955f343935b9c11a30254d1ad8fad98ec257a4407a061a6fd49"
 "checksum quote 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "053a8c8bcc71fcce321828dc897a98ab9760bef03a4fc36693c231e5b3216cfe"
 "checksum redox_syscall 0.1.54 (registry+https://github.com/rust-lang/crates.io-index)" = "12229c14a0f65c4f1cb046a3b52047cdd9da1f4b30f8a39c5063c8bae515e252"
 "checksum redox_termios 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "7e891cfe48e9100a70a3b6eb652fef28920c117d366339687bd5576160db0f76"
