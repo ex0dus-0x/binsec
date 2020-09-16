@@ -8,45 +8,44 @@
 use goblin::pe::PE;
 
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 
-use crate::check::{Checker, FeatureCheck};
-use crate::format::{BinTable, FeatureMap};
+use structmap_derive::ToHashMap;
 
-use std::boxed::Box;
+use crate::check::Checker;
+use crate::format::FeatureMap;
 
 /// struct defining parsed info given a PE binary format
-#[derive(Deserialize, Serialize, Default)]
+#[derive(Deserialize, Serialize, ToHashMap, Default)]
 pub struct PeInfo {
-    #[rename("Machine")]
+    //#[rename("Machine")]
     pub machine: u16,
 
-    #[rename("Number of Sections")]
+    //#[rename("Number of Sections")]
     pub num_sections: u16,
 
-    #[rename("Timestamp")]
+    //#[rename("Timestamp")]
     pub timestamp: u32,
 }
 
 
 /// struct defining security features parsed from PE, and
 /// derives serde de/serialize traits for structured output.
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToHashMap)]
 pub struct PeChecker {
-    #[rename("Data Execution Prevention (DEP)")]
+    //#[rename("Data Execution Prevention (DEP)")]
     pub dep: bool,
 
-    #[rename("Control Flow Guard (CFG)")]
+    //#[rename("Control Flow Guard (CFG)")]
     pub cfg: bool,
 
-    #[rename("Code Integrity")]
+    //#[rename("Code Integrity")]
     pub code_integrity: bool,
 }
 
 
 impl Checker for PE<'_> {
     /// parses out basic binary information and stores for consumption and output.
-    fn bin_info(&self) -> Box<dyn FeatureCheck> {
+    fn bin_info(&self) -> FeatureMap {
         Box::new(PeInfo {
             machine: self.header.coff_header.machine,
             num_sections: self.header.coff_header.number_of_sections,
@@ -55,7 +54,7 @@ impl Checker for PE<'_> {
     }
 
     /// implements the necesary checks for the security mitigations of the specific file format.
-    fn harden_check(&self) -> Box<dyn FeatureCheck> {
+    fn harden_check(&self) -> FeatureMap {
         // check for DEP aka stack exec protection by checking the DLL characteristics
         let dep: bool = match self.header.optional_header {
             Some(optional_header) => {

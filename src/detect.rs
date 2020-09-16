@@ -3,9 +3,9 @@
 #![allow(clippy::match_bool)]
 
 use crate::check::kernel::KernelChecker;
-use crate::check::{Checker, FeatureCheck};
+use crate::check::Checker;
 use crate::errors::{BinError, BinResult, ErrorKind};
-use crate::format::BinFormat;
+use crate::format::{BinFormat, FeatureMap};
 use crate::rule_engine::YaraExecutor;
 
 use goblin::mach::Mach::{Binary, Fat};
@@ -25,19 +25,19 @@ use std::path::PathBuf;
 pub struct Detector {
     /// If set, returns any basic binary information that may be useful for the user
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub bin_info: Option<Box<dyn FeatureCheck>>,
+    pub bin_info: Option<FeatureMap>,
 
     /// Runs the standard binary hardening checks against the input binary
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub harden_features: Option<Box<dyn FeatureCheck>>,
+    pub harden_features: Option<FeatureMap>,
 
     /// Performs checks for the host kernel running the binary provided
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub kernel_features: Option<Box<dyn FeatureCheck>>,
+    pub kernel_features: Option<FeatureMap>,
 
     /// Executes a set of YARA-based "enhanced" rules to detect deeper features
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub rule_features: Option<Box<dyn FeatureCheck>>,
+    pub rule_features: Option<FeatureMap>,
 }
 
 impl Detector {

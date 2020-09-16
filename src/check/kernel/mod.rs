@@ -3,7 +3,6 @@
 
 pub mod linux;
 
-use crate::check::FeatureCheck;
 use crate::errors::{BinError, BinResult, ErrorKind};
 
 use platforms::target::OS;

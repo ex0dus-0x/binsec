@@ -2,7 +2,6 @@
 //! implement a foreign function interface directly with the system-installed YARA library component,
 //! this is used instead since the currently available Rust bindings to YARA only support up to 3.11.
 
-use crate::check::FeatureCheck;
 use crate::errors::{BinError, BinResult, ErrorKind};
 
 use colored::*;
@@ -89,7 +88,6 @@ impl YaraCollection {
 #[derive(Deserialize, Serialize, Debug, Default)]
 pub struct YaraMatches(Vec<YaraCollection>);
 
-#[typetag::serde]
 impl FeatureCheck for YaraMatches {
     /// Re-implementation of `BinTable::parse`, since this requires handling for specific categorized rulesets
     /// and does not have genericized values in the internal mapping.
