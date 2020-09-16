@@ -7,24 +7,15 @@ pub mod kernel;
 pub mod mach;
 pub mod pe;
 
-use std::boxed::Box;
-
-/// trait to genericize associative structs that store information, which can be de/serialized and
-/// can also dump out an output with all of its attributes.
-#[typetag::serde(tag = "type")]
-pub trait FeatureCheck {
-    /// generate an output for display given a checked set of features stored
-    /// WIP: procedural macro for automatically converting structs to map types
-    fn output(&self) -> String;
-}
+use std::collections::HashMap;
 
 /// trait that is implemented in order to extend libgoblin's functionality to detect binary
 /// security mitigations either through traditional hardening techniques.
 pub trait Checker {
     /// parses out and returns basic binary information for more verbose user output.
-    fn bin_info(&self) -> Box<dyn FeatureCheck>;
+    fn bin_info(&self) -> HashMap<String, String>;
 
     /// defines the function be implemented in order to detect the standard binary hardening
     /// features usually enforced by the compiler.
-    fn harden_check(&self) -> Box<dyn FeatureCheck>;
+    fn harden_check(&self) -> HashMap<String, String>;
 }

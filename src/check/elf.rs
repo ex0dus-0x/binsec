@@ -14,29 +14,26 @@ use goblin::elf::dynamic::{tag_to_str, Dyn, DT_RUNPATH};
 use goblin::elf::{header, program_header, Elf, ProgramHeader};
 
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 
 use structmap::ToHashMap;
 use structmap_derive::ToHashMap;
 
-use crate::check::{Checker, FeatureCheck};
-use crate::format::{BinTable, FeatureMap};
-
-use std::boxed::Box;
+use crate::check::Checker;
+use crate::format::FeatureMap;
 
 /// defines basic information parsed out from an ELF binary
 #[derive(Deserialize, Serialize, ToHashMap, Default)]
 pub struct ElfInfo {
-    #[rename("Architecture")]
+    //#[rename("Architecture")]
     pub machine: String,
 
-    #[rename("File Class")]
+    //#[rename("File Class")]
     pub file_class: String,
 
-    #[rename("Binary Type")]
+    //#[rename("Binary Type")]
     pub bin_type: String,
 
-    #[rename("Entry Point Address")]
+    //#[rename("Entry Point Address")]
     pub entry_point: u64,
 }
 
@@ -65,42 +62,42 @@ impl ToString for Relro {
 #[derive(Deserialize, Serialize, ToHashMap)]
 struct ElfChecker {
     // Executable stack
-    #[rename("Executable Stack (NX Bit)")]
+    //#[rename("Executable Stack (NX Bit)")]
     pub exec_stack: bool,
 
     // Use of stack canary
-    #[rename("Executable Stack (NX Bit)")]
+    //#[rename("Executable Stack (NX Bit)")]
     pub stack_canary: bool,
 
     // Position Independent Executable
-    #[rename("Position Independent Executable / ASLR")]
+    //#[rename("Position Independent Executable / ASLR")]
     pub pie: bool,
 
     // Read-Only Relocatable
-    #[rename("Read-Only Relocatable")]
+    //#[rename("Read-Only Relocatable")]
     pub relro: Relro,
 
     // FORTIFY_SOURCE
-    #[rename("FORTIFY_SOURCE")]
+    //#[rename("FORTIFY_SOURCE")]
     pub fortify_source: bool,
 
     // Runpath
-    #[rename("Runpath")]
+    //#[rename("Runpath")]
     pub runpath: Vec<String>,
 
     // Address Sanitizer
-    #[rename("ASan")]
+    //#[rename("ASan")]
     pub asan: bool,
 
     // Undefined Behavior Sanitizer
-    #[rename("UBSan")]
+    //#[rename("UBSan")]
     pub ubsan: bool,
 }
 
 
 impl Checker for Elf<'_> {
     /// parses out basic binary information and stores for consumption and output.
-    fn bin_info(&self) -> Box<dyn FeatureCheck> {
+    fn bin_info(&self) -> FeatureMap {
         let header: header::Header = self.header;
         let file_class: &str = match header.e_ident[4] {
             1 => "ELF32",
@@ -108,16 +105,17 @@ impl Checker for Elf<'_> {
             _ => "unknown",
         };
 
-        Box::new(ElfInfo {
+        let info: ElfInfo  = ElfInfo {
             machine: header::machine_to_str(header.e_machine).to_string(),
             file_class: file_class.to_string(),
             bin_type: header::et_to_str(header.e_type).to_string(),
             entry_point: header.e_entry,
-        })
+        };
+        ElfInfo::to_hashmap(info);
     }
 
     /// implements the necesary checks for the security mitigations for the specific file format.
-    fn harden_check(&self) -> Box<dyn FeatureCheck> {
+    fn harden_check(&self) -> HashMap<String, String> {
         // check for executable stack through program headers
         let exec_stack: bool = self
             .program_headers
@@ -219,7 +217,7 @@ impl Checker for Elf<'_> {
             None => vec![],
         };
 
-        Box::new(ElfChecker {
+        let checker: ElfChecker = ElfChecker {
             exec_stack,
             stack_canary,
             fortify_source,
@@ -228,6 +226,7 @@ impl Checker for Elf<'_> {
             runpath,
             asan,
             ubsan,
-        })
+        };
+        ElfChecker::to_hashmap(checker)
     }
 }

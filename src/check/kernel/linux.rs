@@ -12,12 +12,10 @@
 //! * Kernel stack protector
 
 use crate::check::kernel::KernelCheck;
-use crate::check::FeatureCheck;
 use crate::errors::BinResult;
 use crate::format::{BinTable, FeatureMap};
 
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 
 use structmap::ToHashMap;
 use structmap_derive::ToHashMap;
@@ -50,31 +48,31 @@ enum PtraceScope {
 
 #[derive(Serialize, Deserialize, ToHashMap)]
 pub struct LinuxKernelChecker {
-    #[rename("AppArmor")]
+    //#[rename("AppArmor")]
     apparmor: bool,
 
-    #[rename("Ptrace Scope")]
+    //#[rename("Ptrace Scope")]
     ptrace_scope: PtraceScope,
 
-    #[rename("ASLR")]
+    //#[rename("ASLR")]
     aslr: bool, // TODO: aslr type
 
-    #[rename("kASLR")]
+    //#[rename("kASLR")]
     kaslr: bool,
 
-    #[rename("/dev/mem protection")]
+    //#[rename("/dev/mem protection")]
     dev_mem_protected: bool,
 
-    #[rename("/dev/kmem protection")]
+    //#[rename("/dev/kmem protection")]
     dev_kmem_access: bool,
 
-    #[rename("Read-only data sections")]
+    //#[rename("Read-only data sections")]
     ro_kernel_sections: bool,
 
-    #[rename("Read-only kernel modules")]
+    //#[rename("Read-only kernel modules")]
     ro_kernel_modules: bool,
 
-    #[rename("Kernel Stack Protector")]
+    //#[rename("Kernel Stack Protector")]
     kernel_stack_protector: bool,
 }
 
