@@ -6,6 +6,7 @@ pub mod linux;
 use crate::check::FeatureCheck;
 use crate::errors::{BinError, BinResult, ErrorKind};
 
+use platforms::platform::Platform;
 use platforms::target::OS;
 use procfs::ConfigSetting;
 
@@ -60,7 +61,7 @@ pub struct KernelChecker;
 
 impl KernelChecker {
     pub fn detect() -> BinResult<Box<dyn FeatureCheck>> {
-        if let Some(platform) = platforms::guess_current() {
+        if let Some(platform) = Platform::guess_current() {
             match platform.target_os {
                 OS::Linux | OS::Android => Ok(Box::new(linux::LinuxKernelChecker::check()?)),
                 OS::MacOS | OS::FreeBSD | OS::NetBSD => Err(BinError {
