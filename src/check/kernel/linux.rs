@@ -106,14 +106,8 @@ impl KernelCheck for LinuxKernelChecker {
         // check if ASLR is enabled
         let aslr_ctl = sysctl::Ctl::new("kernel.randomize_va_space").unwrap();
         let aslr: bool = match aslr_ctl.value().unwrap() {
-            sysctl::CtlValue::Int(val) => match val {
-                1 | 2 => true,
-                _ => false,
-            },
-            sysctl::CtlValue::String(val) => match val.as_str() {
-                "1" | "2" => true,
-                _ => false,
-            },
+            sysctl::CtlValue::Int(val) => matches!(val, 1 | 2),
+            sysctl::CtlValue::String(val) => matches!(val.as_str(), "1" | "2"),
             _ => false,
         };
 

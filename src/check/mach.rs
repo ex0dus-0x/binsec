@@ -98,16 +98,10 @@ impl Checker for MachO<'_> {
     /// implements the necesary checks for the security mitigations for the specific file format.
     fn harden_check(&self) -> Box<dyn FeatureCheck> {
         // check for non-executable stack
-        let nx_stack: bool = match self.header.flags & MH_ALLOW_STACK_EXECUTION {
-            0 => true,
-            _ => false,
-        };
+        let nx_stack: bool = matches!(self.header.flags & MH_ALLOW_STACK_EXECUTION, 0);
 
         // check for non-executable heap
-        let nx_heap: bool = match self.header.flags & MH_NO_HEAP_EXECUTION {
-            0 => true,
-            _ => false,
-        };
+        let nx_heap: bool = matches!(self.header.flags & MH_NO_HEAP_EXECUTION, 0);
 
         // check for stack canary by finding canary functions in imports
         let stack_canary: bool = match self.imports() {
