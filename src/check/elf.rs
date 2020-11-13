@@ -194,10 +194,7 @@ impl Checker for Elf<'_> {
             });
 
         // check for position-independent executable
-        let pie: bool = match self.header.e_type {
-            3 => true,
-            _ => false,
-        };
+        let pie: bool = matches!(self.header.e_type, 3);
 
         // check for RELRO
         let relro_header: Option<ProgramHeader> = self
