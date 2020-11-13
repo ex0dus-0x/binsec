@@ -37,7 +37,7 @@ enum Aslr {
 
 /// defines the type of restriction being used on calls to `ptrace` when doing
 /// any type of process introspection.
-#[derive(Serialize, Deserialize, ToHashMap, Debug)]
+#[derive(Serialize, Deserialize,Debug)]
 enum PtraceScope {
     Classic,
     Restricted,

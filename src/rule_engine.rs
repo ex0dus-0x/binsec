@@ -88,6 +88,7 @@ impl YaraCollection {
 #[derive(Deserialize, Serialize, Debug, Default)]
 pub struct YaraMatches(Vec<YaraCollection>);
 
+/*
 impl FeatureCheck for YaraMatches {
     /// Re-implementation of `BinTable::parse`, since this requires handling for specific categorized rulesets
     /// and does not have genericized values in the internal mapping.
@@ -131,6 +132,7 @@ impl FeatureCheck for YaraMatches {
         table.render()
     }
 }
+*/
 
 /// Defines a builder executor that calls yara directly through the command line rather than bindings,
 /// and is able to consume rules and executables to match those rules against. The output format

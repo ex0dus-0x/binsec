@@ -58,7 +58,7 @@ impl Detector {
         let mut bin_info: Option<Box<dyn FeatureCheck>> = None;
 
         // do format-specific hardening check if set
-        let harden_features: Option<Box<dyn FeatureCheck>> = match harden {
+        let harden_features: Option<HashMap<String, String>> = match harden {
             true => match Object::parse(&buffer)? {
                 Object::Elf(elf) => {
                     bin_info = match basic_info {
