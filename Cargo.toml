@@ -24,7 +24,7 @@ clap = "2.33.3"
 term-table = "1.3.0"
 colored = "2.0.0"
 
-goblin = "0.2.3"
+goblin = "0.3.0"
 typetag = "0.1.6"
 platforms = "1.0.3"
 sysctl = "0.4.0"
