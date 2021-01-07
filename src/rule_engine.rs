@@ -32,7 +32,7 @@ impl std::string::ToString for YaraCollection {
         let mut output: String = String::new();
         output.push_str(&format!("{}", "Collection Name: ".bold()));
         output.push_str(&self.name);
-        output.push_str("\n");
+        output.push('\n');
 
         output.push_str(&format!("{}", "Description: ".bold()));
         output.push_str(&self.description);
