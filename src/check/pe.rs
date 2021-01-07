@@ -9,51 +9,61 @@ use goblin::pe::PE;
 
 use serde::{Deserialize, Serialize};
 
+use structmap::ToHashMap;
+use structmap::value::Value;
 use structmap_derive::ToHashMap;
 
 use crate::check::Checker;
 use crate::format::FeatureMap;
 
-/// struct defining parsed info given a PE binary format
+/// Struct defining parsed info given a PE binary format
 #[derive(Deserialize, Serialize, ToHashMap, Default)]
 pub struct PeInfo {
-    //#[rename("Machine")]
-    pub machine: u16,
+    #[rename(name = "Machine")]
+    pub machine: u32,
 
-    //#[rename("Number of Sections")]
-    pub num_sections: u16,
+    #[rename(name = "Number of Sections")]
+    pub num_sections: u32,
 
-    //#[rename("Timestamp")]
+    #[rename(name = "Timestamp")]
     pub timestamp: u32,
 }
 
 
-/// struct defining security features parsed from PE, and
+/// Struct defining security features parsed from PE, and
 /// derives serde de/serialize traits for structured output.
 #[derive(Deserialize, Serialize, ToHashMap)]
 pub struct PeChecker {
-    //#[rename("Data Execution Prevention (DEP)")]
+    #[rename(name = "Data Execution Prevention (DEP)")]
     pub dep: bool,
 
-    //#[rename("Control Flow Guard (CFG)")]
+    #[rename(name = "Control Flow Guard (CFG)")]
     pub cfg: bool,
 
-    //#[rename("Code Integrity")]
+    #[rename(name = "Code Integrity")]
     pub code_integrity: bool,
+}
+
+impl Default for PeChecker {
+    fn default() -> Self {
+        Self {
+            dep: false,
+            cfg: false,
+            code_integrity: false,
+        }
+    }
 }
 
 
 impl Checker for PE<'_> {
-    /// parses out basic binary information and stores for consumption and output.
     fn bin_info(&self) -> FeatureMap {
         Box::new(PeInfo {
-            machine: self.header.coff_header.machine,
-            num_sections: self.header.coff_header.number_of_sections,
+            machine: self.header.coff_header.machine as u32,
+            num_sections: self.header.coff_header.number_of_sections as u32,
             timestamp: self.header.coff_header.time_date_stamp,
         })
     }
 
-    /// implements the necesary checks for the security mitigations of the specific file format.
     fn harden_check(&self) -> FeatureMap {
         // check for DEP aka stack exec protection by checking the DLL characteristics
         let dep: bool = match self.header.optional_header {

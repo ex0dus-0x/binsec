@@ -4,18 +4,15 @@
 pub mod linux;
 
 use crate::errors::{BinError, BinResult, ErrorKind};
+use crate::format::FeatureMap;
 
 use platforms::platform::Platform;
 use platforms::target::OS;
 use procfs::ConfigSetting;
 
-use std::boxed::Box;
-
 /// used to define rudimentary trait to represent a kernel-based security checker
 pub trait KernelCheck {
-    fn check() -> BinResult<Self>
-    where
-        Self: std::marker::Sized;
+    fn check() -> BinResult<FeatureMap>;
 
     /// parses the kernel configuration and checks to see if a specific parameter is initialized
     /// as something, and returns true if exists.
@@ -59,10 +56,10 @@ pub trait KernelCheck {
 pub struct KernelChecker;
 
 impl KernelChecker {
-    pub fn detect() -> BinResult<Box<dyn FeatureCheck>> {
+    pub fn detect() -> BinResult<FeatureMap> {
         if let Some(platform) = Platform::guess_current() {
-            match platform.target_os {
-                OS::Linux | OS::Android => Ok(Box::new(linux::LinuxKernelChecker::check()?)),
+          match platform.target_os {
+                OS::Linux | OS::Android => Ok(linux::LinuxKernelChecker::check()?),
                 OS::MacOS | OS::FreeBSD | OS::NetBSD => Err(BinError {
                     kind: ErrorKind::KernelCheckError,
                     msg: "Darwin/BSD kernel security checks not yet supported".to_string(),

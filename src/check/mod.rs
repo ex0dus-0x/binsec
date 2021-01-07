@@ -7,15 +7,15 @@ pub mod kernel;
 pub mod mach;
 pub mod pe;
 
-use std::collections::HashMap;
+use crate::format::FeatureMap;
 
 /// trait that is implemented in order to extend libgoblin's functionality to detect binary
 /// security mitigations either through traditional hardening techniques.
 pub trait Checker {
     /// parses out and returns basic binary information for more verbose user output.
-    fn bin_info(&self) -> HashMap<String, String>;
+    fn bin_info(&self) -> FeatureMap;
 
     /// defines the function be implemented in order to detect the standard binary hardening
     /// features usually enforced by the compiler.
-    fn harden_check(&self) -> HashMap<String, String>;
+    fn harden_check(&self) -> FeatureMap;
 }

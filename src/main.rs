@@ -10,8 +10,8 @@ use binsec::format::BinFormat;
 use std::path::PathBuf;
 
 fn parse_args<'a>() -> ArgMatches<'a> {
-    App::new("binsec")
-        .version("1.0.0")
+    App::new(env!("CARGO_PKG_NAME"))
+        .version(env!("CARGO_PKG_VERSION"))
         .author("ex0dus <ex0dus at codemuch.tech>")
         .about("Swiss Army Knife for Binary (In)security")
         .setting(AppSettings::ArgRequiredElseHelp)
