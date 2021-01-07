@@ -9,18 +9,18 @@ use crate::detect::Detector;
 use crate::errors::BinResult;
 
 use colored::*;
-use serde_json::Value;
 use term_table::{
     row::Row,
     table_cell::{Alignment, TableCell},
 };
 use term_table::{Table, TableStyle};
+use structmap::value::Value;
 
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 /// Aliases a finalized output type for a detector, storing all the checks that
 /// were performed and their results for consumption by a `BinTable` for creating a table.
-pub type FeatureMap = BTreeMap<&'static str, Value>;
+pub type FeatureMap = HashMap<String, Value>;
 
 /// Helper struct that helps convert a `FeatureMap` into a normalized ASCII table
 pub struct BinTable;

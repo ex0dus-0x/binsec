@@ -16,87 +16,86 @@ use goblin::elf::{header, program_header, Elf, ProgramHeader};
 use serde::{Deserialize, Serialize};
 
 use structmap::ToHashMap;
+use structmap::value::Value;
 use structmap_derive::ToHashMap;
 
 use crate::check::Checker;
 use crate::format::FeatureMap;
 
-/// defines basic information parsed out from an ELF binary
+
+/// Defines basic information parsed out from an ELF binary
 #[derive(Deserialize, Serialize, ToHashMap, Default)]
 pub struct ElfInfo {
-    //#[rename("Architecture")]
+    #[rename(name = "Architecture")]
     pub machine: String,
 
-    //#[rename("File Class")]
+    #[rename(name = "File Class")]
     pub file_class: String,
 
-    //#[rename("Binary Type")]
+    #[rename(name = "Binary Type")]
     pub bin_type: String,
 
-    //#[rename("Entry Point Address")]
-    pub entry_point: u64,
+    #[rename(name = "Entry Point Address")]
+    pub entry_point: u32,
 }
 
 
-/// specifies type of relocation read-only, which defines how dynamic relocations
-/// are resolved as a security feature against GOT/PLT attacks.
-#[derive(Deserialize, Serialize)]
-pub enum Relro {
-    FullRelro,
-    PartialRelro,
-    NoRelro,
-}
-
-impl ToString for Relro {
-    fn to_string(&self) -> String {
-        match self {
-            Relro::FullRelro => "FULL".to_string(),
-            Relro::PartialRelro => "PARTIAL".to_string(),
-            Relro::NoRelro => "NONE".to_string(),
-        }
-    }
-}
-
-/// encapsulates an ELF object from libgoblin, in order to parse it and dissect out the necessary
+/// Encapsulates an ELF object from libgoblin, in order to parse it and dissect out the necessary
 /// security mitigation features.
 #[derive(Deserialize, Serialize, ToHashMap)]
 struct ElfChecker {
     // Executable stack
-    //#[rename("Executable Stack (NX Bit)")]
+    #[rename(name = "Executable Stack (NX Bit)")]
     pub exec_stack: bool,
 
     // Use of stack canary
-    //#[rename("Executable Stack (NX Bit)")]
+    #[rename(name = "Executable Stack (NX Bit)")]
     pub stack_canary: bool,
 
     // Position Independent Executable
-    //#[rename("Position Independent Executable / ASLR")]
+    #[rename(name = "Position Independent Executable / ASLR")]
     pub pie: bool,
 
     // Read-Only Relocatable
-    //#[rename("Read-Only Relocatable")]
-    pub relro: Relro,
+    #[rename(name = "Read-Only Relocatable")]
+    pub relro: String,
 
     // FORTIFY_SOURCE
-    //#[rename("FORTIFY_SOURCE")]
+    #[rename(name = "FORTIFY_SOURCE")]
     pub fortify_source: bool,
 
     // Runpath
-    //#[rename("Runpath")]
+    #[rename(name = "Runpath")]
     pub runpath: Vec<String>,
 
     // Address Sanitizer
-    //#[rename("ASan")]
+    #[rename(name = "ASan")]
     pub asan: bool,
 
     // Undefined Behavior Sanitizer
-    //#[rename("UBSan")]
+    #[rename(name = "UBSan")]
     pub ubsan: bool,
 }
 
 
+impl Default for ElfChecker {
+    fn default() -> Self {
+        Self {
+            exec_stack: false,
+            stack_canary: false,
+            pie: false,
+            relro: String::new(),
+            fortify_source: false,
+            runpath: Vec::new(),
+            asan: false,
+            ubsan: false,
+        }
+    }
+}
+
+
 impl Checker for Elf<'_> {
-    /// parses out basic binary information and stores for consumption and output.
+    /// Parses out basic binary information and stores for consumption and output.
     fn bin_info(&self) -> FeatureMap {
         let header: header::Header = self.header;
         let file_class: &str = match header.e_ident[4] {
@@ -109,13 +108,13 @@ impl Checker for Elf<'_> {
             machine: header::machine_to_str(header.e_machine).to_string(),
             file_class: file_class.to_string(),
             bin_type: header::et_to_str(header.e_type).to_string(),
-            entry_point: header.e_entry,
+            entry_point: header.e_entry as u32,
         };
         ElfInfo::to_hashmap(info);
     }
 
-    /// implements the necesary checks for the security mitigations for the specific file format.
-    fn harden_check(&self) -> HashMap<String, String> {
+    /// Implements the necesary checks for the security mitigations for the specific file format.
+    fn harden_check(&self) -> FeatureMap {
         // check for executable stack through program headers
         let exec_stack: bool = self
             .program_headers
@@ -173,7 +172,7 @@ impl Checker for Elf<'_> {
             .cloned();
 
         // check for full or partial RELRO
-        let mut relro: Relro = Relro::NoRelro;
+        let mut relro: String = String::new();
         match relro_header {
             Some(_rh) => {
                 // check for full/partial RELRO support by checking dynamic section for DT_BIND_NOW flag.
@@ -186,14 +185,14 @@ impl Checker for Elf<'_> {
                         .cloned();
 
                     if dyn_seg.is_some() {
-                        relro = Relro::FullRelro;
+                        relro = "FULL";
                     } else {
-                        relro = Relro::PartialRelro;
+                        relro = "PARTIAL";
                     }
                 }
             }
             None => {
-                relro = Relro::NoRelro;
+                relro = "NONE";
             }
         };
 

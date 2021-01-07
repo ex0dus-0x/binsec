@@ -43,7 +43,6 @@ pub struct Detector {
 impl Detector {
     /// Run the detector given the instantiated configuration options, and stores results for later
     /// output and consumption.
-    /// TODO: simplify parameters to builder-like pattern
     pub fn detect(
         path: PathBuf,
         basic_info: bool,
@@ -55,10 +54,10 @@ impl Detector {
         let buffer = fs::read(path.as_path())?;
 
         // is set when parsing each specific binary format type
-        let mut bin_info: Option<Box<dyn FeatureCheck>> = None;
+        let mut bin_info: Option<FeatureMap> = None;
 
         // do format-specific hardening check if set
-        let harden_features: Option<HashMap<String, String>> = match harden {
+        let harden_features: Option<FeatureMap> = match harden {
             true => match Object::parse(&buffer)? {
                 Object::Elf(elf) => {
                     bin_info = match basic_info {
@@ -100,13 +99,13 @@ impl Detector {
         };
 
         // detect kernel mitigations features if set for the current host's operating system
-        let kernel_features: Option<Box<dyn FeatureCheck>> = match kernel {
+        let kernel_features: Option<FeatureMap> = match kernel {
             true => Some(KernelChecker::detect()?),
             false => None,
         };
 
         // run the enhanced set of rules against the binary if set
-        let rule_features: Option<Box<dyn FeatureCheck>> = match rules {
+        let rule_features: Option<FeatureMap> = match rules {
             true => {
                 // initialize YARA executor
                 let mut rule_exec: YaraExecutor = YaraExecutor::new(path);

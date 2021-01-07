@@ -13,11 +13,12 @@ use goblin::mach::MachO;
 
 use serde::{Deserialize, Serialize};
 
+use structmap::ToHashMap;
+use structmap::value::Value;
 use structmap_derive::ToHashMap;
 
 use crate::check::Checker;
 use crate::format::FeatureMap;
-
 
 const MH_ALLOW_STACK_EXECUTION: u32 = 0x0002_0000;
 const MH_NO_HEAP_EXECUTION: u32 = 0x0100_0000;
@@ -39,29 +40,39 @@ pub struct MachInfo {
 }
 
 
-/// struct defining security features parsed from PE, and
+/// Struct defining security features parsed from PE, and
 /// derives serde de/serialize traits for structured output.
 #[derive(Deserialize, Serialize, ToHashMap)]
 pub struct MachChecker {
     // executable stack
-    //#[rename("Non-Executable Stack")]
+    #[rename(name = "Non-Executable Stack")]
     pub nx_stack: bool,
 
     // executable heap
-    //#[rename("Non-Executable Heap")]
+    #[rename(name = "Non-Executable Heap")]
     pub nx_heap: bool,
 
     // prevents out of bounds read/writes
-    //#[rename("Stack Canary")]
+    #[rename(name = "Stack Canary")]
     pub stack_canary: bool,
 
     // restricted segment for code injection prevention
-    //#[rename("__RESTRICT")]
+    #[rename(name = "__RESTRICT")]
     pub restrict: bool,
 }
 
+impl Default for MachChecker {
+    fn default() -> Self {
+        Self {
+            nx_stack: false,
+            nx_heap: false,
+            stack_canary: false,
+            restrict: false,
+        }
+    }
+}
+
 impl Checker for MachO<'_> {
-    /// parses out basic binary information and stores for consumption and output.
     fn bin_info(&self) -> FeatureMap {
         // parse out machine architecture given cpu type and subtype
         let machine: String =
@@ -83,7 +94,6 @@ impl Checker for MachO<'_> {
         })
     }
 
-    /// implements the necesary checks for the security mitigations for the specific file format.
     fn harden_check(&self) -> FeatureMap {
         // check for non-executable stack
         let nx_stack: bool = matches!(self.header.flags & MH_ALLOW_STACK_EXECUTION, 0);

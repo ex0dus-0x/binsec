@@ -13,11 +13,12 @@
 
 use crate::check::kernel::KernelCheck;
 use crate::errors::BinResult;
-use crate::format::{BinTable, FeatureMap};
+use crate::format::FeatureMap;
 
 use serde::{Deserialize, Serialize};
 
 use structmap::ToHashMap;
+use structmap::value::Value;
 use structmap_derive::ToHashMap;
 
 use sysctl::Sysctl;
@@ -77,7 +78,7 @@ pub struct LinuxKernelChecker {
 }
 
 impl KernelCheck for LinuxKernelChecker {
-    fn check() -> BinResult<Self> {
+    fn check() -> BinResult<FeatureMap> {
         // check if path exists to determine if AppArmor is loaded in kernel
         let apparmor: bool = Path::new("/sys/kernel/security/apparmor").exists();
 
