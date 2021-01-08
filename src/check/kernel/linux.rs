@@ -17,8 +17,8 @@ use crate::format::FeatureMap;
 
 use serde::{Deserialize, Serialize};
 
-use structmap::ToHashMap;
 use structmap::value::Value;
+use structmap::ToHashMap;
 use structmap_derive::ToHashMap;
 
 use sysctl::Sysctl;
@@ -26,6 +26,7 @@ use sysctl::Sysctl;
 use std::fs;
 use std::path::Path;
 
+/*
 /// TODO: make this work!!
 #[derive(Serialize, Deserialize)]
 enum Aslr {
@@ -38,7 +39,7 @@ enum Aslr {
 
 /// defines the type of restriction being used on calls to `ptrace` when doing
 /// any type of process introspection.
-#[derive(Serialize, Deserialize,Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 enum PtraceScope {
     Classic,
     Restricted,
@@ -46,35 +47,52 @@ enum PtraceScope {
     NoAttach,
     None,
 }
+*/
 
 #[derive(Serialize, Deserialize, ToHashMap)]
 pub struct LinuxKernelChecker {
-    //#[rename("AppArmor")]
+    #[rename(name = "AppArmor")]
     apparmor: bool,
 
-    //#[rename("Ptrace Scope")]
-    ptrace_scope: PtraceScope,
+    #[rename(name = "Ptrace Scope")]
+    ptrace_scope: String,
 
-    //#[rename("ASLR")]
+    #[rename(name = "ASLR")]
     aslr: bool, // TODO: aslr type
 
-    //#[rename("kASLR")]
+    #[rename(name = "kASLR")]
     kaslr: bool,
 
-    //#[rename("/dev/mem protection")]
+    #[rename(name = "/dev/mem protection")]
     dev_mem_protected: bool,
 
-    //#[rename("/dev/kmem protection")]
+    #[rename(name = "/dev/kmem protection")]
     dev_kmem_access: bool,
 
-    //#[rename("Read-only data sections")]
+    #[rename(name = "Read-only data sections")]
     ro_kernel_sections: bool,
 
-    //#[rename("Read-only kernel modules")]
+    #[rename(name = "Read-only kernel modules")]
     ro_kernel_modules: bool,
 
-    //#[rename("Kernel Stack Protector")]
+    #[rename(name = "Kernel Stack Protector")]
     kernel_stack_protector: bool,
+}
+
+impl Default for LinuxKernelChecker {
+    fn default() -> Self {
+        Self {
+            apparmor: false,
+            ptrace_scope: String::new(),
+            aslr: false,
+            kaslr: false,
+            dev_mem_protected: false,
+            dev_kmem_access: false,
+            ro_kernel_sections: false,
+            ro_kernel_modules: false,
+            kernel_stack_protector: false,
+        }
+    }
 }
 
 impl KernelCheck for LinuxKernelChecker {
@@ -84,22 +102,22 @@ impl KernelCheck for LinuxKernelChecker {
 
         // get ptrace permissions from sysctl settings
         let ps_ctl = sysctl::Ctl::new("kernel.yama.ptrace_scope").unwrap();
-        let ptrace_scope: PtraceScope = match ps_ctl.value().unwrap() {
+        let ptrace_scope: String = match ps_ctl.value().unwrap() {
             sysctl::CtlValue::Int(val) => match val {
-                0 => PtraceScope::Classic,
-                1 => PtraceScope::Restricted,
-                2 => PtraceScope::AdminOnly,
-                3 => PtraceScope::NoAttach,
-                _ => PtraceScope::None,
+                0 => "Classic".to_string(),
+                1 => "Restricted".to_string(),
+                2 => "Admin Only".to_string(),
+                3 => "No Attach".to_string(),
+                _ => "None".to_string(),
             },
             sysctl::CtlValue::String(val) => match val.as_str() {
-                "0" => PtraceScope::Classic,
-                "1" => PtraceScope::Restricted,
-                "2" => PtraceScope::AdminOnly,
-                "3" => PtraceScope::NoAttach,
-                _ => PtraceScope::None,
+                "0" => "Classic".to_string(),
+                "1" => "Restricted".to_string(),
+                "2" => "Admin Only".to_string(),
+                "3" => "No Attach".to_string(),
+                _ => "None".to_string(),
             },
-            _ => PtraceScope::None,
+            _ => "None".to_string(),
         };
 
         // check if ASLR is enabled
@@ -137,7 +155,7 @@ impl KernelCheck for LinuxKernelChecker {
         let kern_protect: String = String::from("CONFIG_CC_STACKPROTECTOR");
         let kernel_stack_protector: bool = LinuxKernelChecker::kernel_config_set(kern_protect)?;
 
-        Ok(Self {
+        let kernelchecker = Self {
             apparmor,
             ptrace_scope,
             aslr,
@@ -147,6 +165,7 @@ impl KernelCheck for LinuxKernelChecker {
             ro_kernel_sections,
             ro_kernel_modules,
             kernel_stack_protector,
-        })
+        };
+        Ok(LinuxKernelChecker::to_hashmap(kernelchecker))
     }
 }

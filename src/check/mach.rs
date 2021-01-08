@@ -13,8 +13,8 @@ use goblin::mach::MachO;
 
 use serde::{Deserialize, Serialize};
 
-use structmap::ToHashMap;
 use structmap::value::Value;
+use structmap::ToHashMap;
 use structmap_derive::ToHashMap;
 
 use crate::check::Checker;
@@ -38,7 +38,6 @@ pub struct MachInfo {
     //#[rename("Number of Load Commands")]
     pub num_cmds: usize,
 }
-
 
 /// Struct defining security features parsed from PE, and
 /// derives serde de/serialize traits for structured output.
@@ -86,12 +85,13 @@ impl Checker for MachO<'_> {
         // parse out filetype
         let filetype: String = header::filetype_to_str(self.header.filetype).to_string();
 
-        Box::new(MachInfo {
+        let machinfo = MachInfo {
             machine,
             flags,
             filetype,
             num_cmds: self.header.ncmds,
-        })
+        };
+        MachInfo::to_hashmap(machinfo)
     }
 
     fn harden_check(&self) -> FeatureMap {
@@ -122,11 +122,12 @@ impl Checker for MachO<'_> {
             })
             .any(|s| s.to_lowercase() == "__restrict");
 
-        Box::new(MachChecker {
+        let machchecker = MachChecker {
             nx_stack,
             nx_heap,
             stack_canary,
             restrict,
-        })
+        };
+        MachChecker::to_hashmap(machchecker)
     }
 }

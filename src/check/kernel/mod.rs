@@ -58,7 +58,7 @@ pub struct KernelChecker;
 impl KernelChecker {
     pub fn detect() -> BinResult<FeatureMap> {
         if let Some(platform) = Platform::guess_current() {
-          match platform.target_os {
+            match platform.target_os {
                 OS::Linux | OS::Android => Ok(linux::LinuxKernelChecker::check()?),
                 OS::MacOS | OS::FreeBSD | OS::NetBSD => Err(BinError {
                     kind: ErrorKind::KernelCheckError,

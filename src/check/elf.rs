@@ -15,13 +15,12 @@ use goblin::elf::{header, program_header, Elf, ProgramHeader};
 
 use serde::{Deserialize, Serialize};
 
-use structmap::ToHashMap;
 use structmap::value::Value;
+use structmap::ToHashMap;
 use structmap_derive::ToHashMap;
 
 use crate::check::Checker;
 use crate::format::FeatureMap;
-
 
 /// Defines basic information parsed out from an ELF binary
 #[derive(Deserialize, Serialize, ToHashMap, Default)]
@@ -38,7 +37,6 @@ pub struct ElfInfo {
     #[rename(name = "Entry Point Address")]
     pub entry_point: u32,
 }
-
 
 /// Encapsulates an ELF object from libgoblin, in order to parse it and dissect out the necessary
 /// security mitigation features.
@@ -77,7 +75,6 @@ struct ElfChecker {
     pub ubsan: bool,
 }
 
-
 impl Default for ElfChecker {
     fn default() -> Self {
         Self {
@@ -93,7 +90,6 @@ impl Default for ElfChecker {
     }
 }
 
-
 impl Checker for Elf<'_> {
     /// Parses out basic binary information and stores for consumption and output.
     fn bin_info(&self) -> FeatureMap {
@@ -104,13 +100,13 @@ impl Checker for Elf<'_> {
             _ => "unknown",
         };
 
-        let info: ElfInfo  = ElfInfo {
+        let info: ElfInfo = ElfInfo {
             machine: header::machine_to_str(header.e_machine).to_string(),
             file_class: file_class.to_string(),
             bin_type: header::et_to_str(header.e_type).to_string(),
             entry_point: header.e_entry as u32,
         };
-        ElfInfo::to_hashmap(info);
+        ElfInfo::to_hashmap(info)
     }
 
     /// Implements the necesary checks for the security mitigations for the specific file format.
@@ -185,14 +181,14 @@ impl Checker for Elf<'_> {
                         .cloned();
 
                     if dyn_seg.is_some() {
-                        relro = "FULL";
+                        relro = "FULL".to_string();
                     } else {
-                        relro = "PARTIAL";
+                        relro = "PARTIAL".to_string();
                     }
                 }
             }
             None => {
-                relro = "NONE";
+                relro = "NONE".to_string();
             }
         };
 

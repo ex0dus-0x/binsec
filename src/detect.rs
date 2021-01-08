@@ -13,7 +13,6 @@ use goblin::Object;
 
 use serde::{Deserialize, Serialize};
 
-use std::boxed::Box;
 use std::ffi::OsStr;
 use std::fs;
 use std::path::PathBuf;
@@ -129,7 +128,7 @@ impl Detector {
                 rule_exec.execute()?;
 
                 // return back the matches for display
-                Some(Box::new(rule_exec.matches))
+                Some(rule_exec.matches)
             }
             false => None,
         };
