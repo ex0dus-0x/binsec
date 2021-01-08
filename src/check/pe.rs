@@ -9,8 +9,8 @@ use goblin::pe::PE;
 
 use serde::{Deserialize, Serialize};
 
-use structmap::ToHashMap;
 use structmap::value::Value;
+use structmap::ToHashMap;
 use structmap_derive::ToHashMap;
 
 use crate::check::Checker;
@@ -28,7 +28,6 @@ pub struct PeInfo {
     #[rename(name = "Timestamp")]
     pub timestamp: u32,
 }
-
 
 /// Struct defining security features parsed from PE, and
 /// derives serde de/serialize traits for structured output.
@@ -54,14 +53,14 @@ impl Default for PeChecker {
     }
 }
 
-
 impl Checker for PE<'_> {
     fn bin_info(&self) -> FeatureMap {
-        Box::new(PeInfo {
+        let peinfo = PeInfo {
             machine: self.header.coff_header.machine as u32,
             num_sections: self.header.coff_header.number_of_sections as u32,
             timestamp: self.header.coff_header.time_date_stamp,
-        })
+        };
+        PeInfo::to_hashmap(peinfo)
     }
 
     fn harden_check(&self) -> FeatureMap {
@@ -89,10 +88,11 @@ impl Checker for PE<'_> {
             None => false,
         };
 
-        Box::new(PeChecker {
+        let pechecker = PeChecker {
             dep,
             cfg,
             code_integrity,
-        })
+        };
+        PeChecker::to_hashmap(pechecker)
     }
 }

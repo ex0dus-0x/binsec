@@ -9,12 +9,12 @@ use crate::detect::Detector;
 use crate::errors::BinResult;
 
 use colored::*;
+use structmap::value::Value;
 use term_table::{
     row::Row,
     table_cell::{Alignment, TableCell},
 };
 use term_table::{Table, TableStyle};
-use structmap::value::Value;
 
 use std::collections::HashMap;
 
