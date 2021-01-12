@@ -31,5 +31,5 @@ sysctl = "0.4.0"
 procfs = "0.9.1"
 
 toml = "0.5.8"
-serde_json = "1.0.59"
+serde_json = "1.0.61"
 serde = { version = "1.0.118", features = ["derive"] }
