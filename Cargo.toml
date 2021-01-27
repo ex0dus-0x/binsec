@@ -25,7 +25,7 @@ term-table = "1.3.0"
 colored = "2.0.0"
 
 goblin = "0.3.0"
-typetag = "0.1.6"
+typetag = "0.1.7"
 platforms = "1.1.0"
 sysctl = "0.4.0"
 procfs = "0.9.1"
