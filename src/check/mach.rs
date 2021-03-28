@@ -1,5 +1,4 @@
-//! Defines the `Mach` security mitigation checker. Consumes an
-//! Mach-O binary, parses it, and checks for the following features:
+//! Checks for following exploit mitigations:
 //!
 //! * NX (Non-eXecutable bit) stack
 //! * NX (Non-eXecutable bit) heap
@@ -23,25 +22,7 @@ use crate::format::FeatureMap;
 const MH_ALLOW_STACK_EXECUTION: u32 = 0x0002_0000;
 const MH_NO_HEAP_EXECUTION: u32 = 0x0100_0000;
 
-/// Struct defining parsed basic info from a Mach-O binary format
 #[derive(Deserialize, Serialize, ToHashMap, Default)]
-pub struct MachInfo {
-    //#[rename("Machine")]
-    pub machine: String,
-
-    //#[rename("File Type")]
-    pub filetype: String,
-
-    //#[rename("Flags")]
-    pub flags: String,
-
-    //#[rename("Number of Load Commands")]
-    pub num_cmds: usize,
-}
-
-/// Struct defining security features parsed from PE, and
-/// derives serde de/serialize traits for structured output.
-#[derive(Deserialize, Serialize, ToHashMap)]
 pub struct MachChecker {
     // executable stack
     #[rename(name = "Non-Executable Stack")]
@@ -60,45 +41,9 @@ pub struct MachChecker {
     pub restrict: bool,
 }
 
-impl Default for MachChecker {
-    fn default() -> Self {
-        Self {
-            nx_stack: false,
-            nx_heap: false,
-            stack_canary: false,
-            restrict: false,
-        }
-    }
-}
-
 impl Checker for MachO<'_> {
-    fn bin_info(&self) -> FeatureMap {
-        // parse out machine architecture given cpu type and subtype
-        let machine: String =
-            cputype::get_arch_name_from_types(self.header.cputype(), self.header.cpusubtype())
-                .unwrap()
-                .to_string();
-
-        // parse out flag
-        let flags: String = header::flag_to_str(self.header.flags).to_string();
-
-        // parse out filetype
-        let filetype: String = header::filetype_to_str(self.header.filetype).to_string();
-
-        let machinfo = MachInfo {
-            machine,
-            flags,
-            filetype,
-            num_cmds: self.header.ncmds,
-        };
-        MachInfo::to_hashmap(machinfo)
-    }
-
     fn harden_check(&self) -> FeatureMap {
-        // check for non-executable stack
         let nx_stack: bool = matches!(self.header.flags & MH_ALLOW_STACK_EXECUTION, 0);
-
-        // check for non-executable heap
         let nx_heap: bool = matches!(self.header.flags & MH_NO_HEAP_EXECUTION, 0);
 
         // check for stack canary by finding canary functions in imports

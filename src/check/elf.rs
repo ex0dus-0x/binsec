@@ -1,12 +1,10 @@
-//! Defines the `Elf` security mitigation detector. Consumes an
-//! ELF binary, parses it, and checks for the following features:
+//! Check for the following exploit mitigations:
 //!
 //! * NX (Non-eXecutable bit) stack
 //! * Stack Canaries
 //! * FORTIFY_SOURCE
 //! * Position-Independent Executable / ASLR
 //! * Full/Partial RELRO
-//! * Runpath
 //! * Address Sanitizer
 //! * Undefined Behavior Sanitizer
 
@@ -22,51 +20,25 @@ use structmap_derive::ToHashMap;
 use crate::check::Checker;
 use crate::format::FeatureMap;
 
-/// Defines basic information parsed out from an ELF binary
-#[derive(Deserialize, Serialize, ToHashMap, Default)]
-pub struct ElfInfo {
-    #[rename(name = "Architecture")]
-    pub machine: String,
-
-    #[rename(name = "File Class")]
-    pub file_class: String,
-
-    #[rename(name = "Binary Type")]
-    pub bin_type: String,
-
-    #[rename(name = "Entry Point Address")]
-    pub entry_point: u32,
-}
-
 /// Encapsulates an ELF object from libgoblin, in order to parse it and dissect out the necessary
 /// security mitigation features.
 #[derive(Deserialize, Serialize, ToHashMap)]
 struct ElfChecker {
-    // Executable stack
     #[rename(name = "Executable Stack (NX Bit)")]
     pub exec_stack: bool,
 
-    // Use of stack canary
     #[rename(name = "Executable Stack (NX Bit)")]
     pub stack_canary: bool,
 
-    // Position Independent Executable
     #[rename(name = "Position Independent Executable / ASLR")]
     pub pie: bool,
 
-    // Read-Only Relocatable
     #[rename(name = "Read-Only Relocatable")]
     pub relro: String,
 
-    // FORTIFY_SOURCE
     #[rename(name = "FORTIFY_SOURCE")]
     pub fortify_source: bool,
 
-    // Runpath
-    #[rename(name = "Runpath")]
-    pub runpath: Vec<String>,
-
-    // Address Sanitizer
     #[rename(name = "ASan")]
     pub asan: bool,
 
@@ -83,7 +55,6 @@ impl Default for ElfChecker {
             pie: false,
             relro: String::new(),
             fortify_source: false,
-            runpath: Vec::new(),
             asan: false,
             ubsan: false,
         }
@@ -192,6 +163,7 @@ impl Checker for Elf<'_> {
             }
         };
 
+        /*
         // get paths specified in DT_RUNPATH
         let runpath: Vec<String> = match &self.dynamic {
             Some(dynamic) => {
@@ -208,6 +180,7 @@ impl Checker for Elf<'_> {
             }
             None => vec![],
         };
+        */
 
         let checker: ElfChecker = ElfChecker {
             exec_stack,
@@ -215,7 +188,6 @@ impl Checker for Elf<'_> {
             fortify_source,
             pie,
             relro,
-            runpath,
             asan,
             ubsan,
         };

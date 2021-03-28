@@ -1,24 +1,17 @@
-//! Defines the error type used throughout both the library crate
-//! and the main command-line application when encountering exceptions.
-
 use std::error::Error;
 use std::fmt::{self, Display};
 
-// type alias for a Result that encapsulates a BinError
 pub type BinResult<R> = Result<R, BinError>;
 
-/// Defines the error variants that can be encountered when executing.
 #[derive(Debug)]
 pub enum ErrorKind {
     ParseError,
     BinaryError,
     RuleEngineError,
-    KernelCheckError,
     FileError,
     DumpError,
 }
 
-/// Defines the main error type used for any exception that occurs.
 #[derive(Debug)]
 pub struct BinError {
     pub kind: ErrorKind,
