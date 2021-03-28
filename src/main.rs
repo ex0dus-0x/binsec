@@ -1,13 +1,26 @@
-//! Main cli entry point to binsec application.
-
 use clap::{App, AppSettings, Arg, ArgMatches};
 use colored::*;
 
 use binsec::detect::Detector;
 use binsec::errors::BinResult;
-use binsec::format::BinFormat;
 
 use std::path::PathBuf;
+
+pub enum Format {
+    Normal,
+    Json,
+    Csv,
+}
+
+fn main() {
+    let cli_args: ArgMatches = parse_args();
+    match run(cli_args) {
+        Ok(_) => {}
+        Err(e) => {
+            eprintln!("binsec failed with: {}", e);
+        }
+    }
+}
 
 fn parse_args<'a>() -> ArgMatches<'a> {
     App::new(env!("CARGO_PKG_NAME"))
@@ -25,33 +38,24 @@ fn parse_args<'a>() -> ArgMatches<'a> {
         .arg(
             Arg::with_name("check")
                 .help(
-                    "Sets the type of checks to run (available: all, harden (default), \
-                      kernel, enhanced).",
+                    "Sets the type of checks to run. Available: all, basic (default), \
+                      harden, or behavior.",
                 )
-                .short("check")
+                .short("c")
                 .long("check")
                 .takes_value(true)
-                .value_name("DETECTOR")
-                .possible_values(&["all", "harden", "kernel", "enhanced"])
-                .multiple(true)
-                .required(false),
-        )
-        .arg(
-            Arg::with_name("info")
-                .help("Include output on basic binary information and metadata.")
-                .short("i")
-                .long("info")
-                .takes_value(false)
+                .value_name("CHECK_NAME")
+                .possible_values(&["all", "basic", "harden", "behavior"])
                 .required(false),
         )
         .arg(
             Arg::with_name("out_format")
-                .help("Sets output format (available: normal (default), table, json, protobuf).")
+                .help("Sets output format (available: normal (default), json, csv).")
                 .short("f")
                 .long("format")
                 .takes_value(true)
                 .value_name("FORMAT")
-                .possible_values(&["normal", "json", "toml"])
+                .possible_values(&["normal", "json", "csv"])
                 .required(false),
         )
         // TODO: output path
@@ -59,48 +63,20 @@ fn parse_args<'a>() -> ArgMatches<'a> {
 }
 
 fn run(args: ArgMatches) -> BinResult<()> {
-    // retrieve binaries for analysis
     let binaries: Vec<&str> = args.values_of("BINARY").unwrap().collect();
-
-    // set flags to be used for detection output
-    let basic_info: bool = args.is_present("info");
+    let check: &str = args.value_of("check").unwrap();
 
     // render and output based on out_format
     let format: BinFormat = match args.value_of("out_format") {
         Some("json") => BinFormat::Json,
-        Some("toml") => BinFormat::Toml,
+        Some("csv") => BinFormat::Toml,
         Some("normal") | Some(&_) | None => BinFormat::Normal,
     };
 
-    // parse out the mode of execution we are using for checks
-    let (harden, kern, rule): (bool, bool, bool) = match args.values_of("check") {
-        Some(_checks) => {
-            let checks: Vec<_> = _checks.collect();
-            if checks.iter().any(|&arg| arg == "all") {
-                (true, true, true)
-            } else {
-                let res: Vec<bool> = vec!["harden", "kernel", "enhanced"]
-                    .iter()
-                    .map(|&f| checks.iter().any(|&arg| arg == f))
-                    .collect::<Vec<bool>>();
-                (res[0], res[1], res[2])
-            }
-        }
-
-        // if not set, run only with harden checks
-        None => (true, false, false),
-    };
-
-    // initialize binsec detector
     for binary in binaries {
-        // initialize binary path
         let binpath: PathBuf = PathBuf::from(binary.to_string());
+        let detector = Detector::run(binpath)?;
 
-        // initialize detector for the binary
-        // TODO: builder pattern for configurations
-        let detector = Detector::detect(binpath, basic_info, harden, kern, rule)?;
-
-        // dump and output results given a format
         // TODO: deal with if given an output path
         println!(
             "\n[{}] {} {}\n",
@@ -111,14 +87,4 @@ fn run(args: ArgMatches) -> BinResult<()> {
         println!("{}", detector.output(&format)?);
     }
     Ok(())
-}
-
-fn main() {
-    let cli_args: ArgMatches = parse_args();
-    match run(cli_args) {
-        Ok(_) => {}
-        Err(e) => {
-            eprintln!("binsec failed with: {}", e);
-        }
-    }
 }
