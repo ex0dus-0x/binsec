@@ -8,8 +8,8 @@
 //! * Address Sanitizer
 //! * Undefined Behavior Sanitizer
 
-use goblin::elf::dynamic::{tag_to_str, Dyn, DT_RUNPATH};
-use goblin::elf::{header, program_header, Elf, ProgramHeader};
+use goblin::elf::dynamic::{tag_to_str, Dyn};
+use goblin::elf::{program_header, Elf, ProgramHeader};
 
 use serde::{Deserialize, Serialize};
 
@@ -42,7 +42,6 @@ struct ElfChecker {
     #[rename(name = "ASan")]
     pub asan: bool,
 
-    // Undefined Behavior Sanitizer
     #[rename(name = "UBSan")]
     pub ubsan: bool,
 }
@@ -62,25 +61,6 @@ impl Default for ElfChecker {
 }
 
 impl Checker for Elf<'_> {
-    /// Parses out basic binary information and stores for consumption and output.
-    fn bin_info(&self) -> FeatureMap {
-        let header: header::Header = self.header;
-        let file_class: &str = match header.e_ident[4] {
-            1 => "ELF32",
-            2 => "ELF64",
-            _ => "unknown",
-        };
-
-        let info: ElfInfo = ElfInfo {
-            machine: header::machine_to_str(header.e_machine).to_string(),
-            file_class: file_class.to_string(),
-            bin_type: header::et_to_str(header.e_type).to_string(),
-            entry_point: header.e_entry as u32,
-        };
-        ElfInfo::to_hashmap(info)
-    }
-
-    /// Implements the necesary checks for the security mitigations for the specific file format.
     fn harden_check(&self) -> FeatureMap {
         // check for executable stack through program headers
         let exec_stack: bool = self

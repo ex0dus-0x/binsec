@@ -1,6 +1,3 @@
-//! Defines the `PE` security mitigation checker. Consumes an
-//! PE binary, parses it, and checks for the following features:
-//!
 //! * Data Execution Prevention
 //! * Code Integrity
 //! * Control Flow Guard
@@ -15,19 +12,6 @@ use structmap_derive::ToHashMap;
 
 use crate::check::Checker;
 use crate::format::FeatureMap;
-
-/// Struct defining parsed info given a PE binary format
-#[derive(Deserialize, Serialize, ToHashMap, Default)]
-pub struct PeInfo {
-    #[rename(name = "Machine")]
-    pub machine: u32,
-
-    #[rename(name = "Number of Sections")]
-    pub num_sections: u32,
-
-    #[rename(name = "Timestamp")]
-    pub timestamp: u32,
-}
 
 /// Struct defining security features parsed from PE, and
 /// derives serde de/serialize traits for structured output.
@@ -54,15 +38,6 @@ impl Default for PeChecker {
 }
 
 impl Checker for PE<'_> {
-    fn bin_info(&self) -> FeatureMap {
-        let peinfo = PeInfo {
-            machine: self.header.coff_header.machine as u32,
-            num_sections: self.header.coff_header.number_of_sections as u32,
-            timestamp: self.header.coff_header.time_date_stamp,
-        };
-        PeInfo::to_hashmap(peinfo)
-    }
-
     fn harden_check(&self) -> FeatureMap {
         // check for DEP aka stack exec protection by checking the DLL characteristics
         let dep: bool = match self.header.optional_header {

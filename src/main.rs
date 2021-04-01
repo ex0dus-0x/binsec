@@ -1,16 +1,16 @@
 use clap::{App, AppSettings, Arg, ArgMatches};
 use colored::*;
 
-use binsec::detect::Detector;
-use binsec::errors::BinResult;
+mod detect;
+mod errors;
+mod check;
+mod format;
+mod rule_engine;
+
+use crate::detect::Detector;
+use crate::errors::BinResult;
 
 use std::path::PathBuf;
-
-pub enum Format {
-    Normal,
-    Json,
-    Csv,
-}
 
 fn main() {
     let cli_args: ArgMatches = parse_args();
@@ -49,13 +49,11 @@ fn parse_args<'a>() -> ArgMatches<'a> {
                 .required(false),
         )
         .arg(
-            Arg::with_name("out_format")
-                .help("Sets output format (available: normal (default), json, csv).")
-                .short("f")
-                .long("format")
-                .takes_value(true)
-                .value_name("FORMAT")
-                .possible_values(&["normal", "json", "csv"])
+            Arg::with_name("json")
+                .help("Output results in JSON format.")
+                .short("j")
+                .long("json")
+                .takes_value(false)
                 .required(false),
         )
         // TODO: output path
@@ -65,26 +63,17 @@ fn parse_args<'a>() -> ArgMatches<'a> {
 fn run(args: ArgMatches) -> BinResult<()> {
     let binaries: Vec<&str> = args.values_of("BINARY").unwrap().collect();
     let check: &str = args.value_of("check").unwrap();
-
-    // render and output based on out_format
-    let format: BinFormat = match args.value_of("out_format") {
-        Some("json") => BinFormat::Json,
-        Some("csv") => BinFormat::Toml,
-        Some("normal") | Some(&_) | None => BinFormat::Normal,
-    };
+    let json: bool = args.is_present("json");
 
     for binary in binaries {
         let binpath: PathBuf = PathBuf::from(binary.to_string());
         let detector = Detector::run(binpath)?;
-
-        // TODO: deal with if given an output path
         println!(
             "\n[{}] {} {}\n",
             "*".cyan(),
             "Name:".bold().underline(),
             binary
         );
-        println!("{}", detector.output(&format)?);
     }
     Ok(())
 }
