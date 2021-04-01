@@ -6,8 +6,6 @@
 //! * Stack Canaries
 //! * Restricted segment
 
-use goblin::mach::constants::cputype;
-use goblin::mach::header;
 use goblin::mach::MachO;
 
 use serde::{Deserialize, Serialize};
@@ -24,19 +22,15 @@ const MH_NO_HEAP_EXECUTION: u32 = 0x0100_0000;
 
 #[derive(Deserialize, Serialize, ToHashMap, Default)]
 pub struct MachChecker {
-    // executable stack
     #[rename(name = "Non-Executable Stack")]
     pub nx_stack: bool,
 
-    // executable heap
     #[rename(name = "Non-Executable Heap")]
     pub nx_heap: bool,
 
-    // prevents out of bounds read/writes
     #[rename(name = "Stack Canary")]
     pub stack_canary: bool,
 
-    // restricted segment for code injection prevention
     #[rename(name = "__RESTRICT")]
     pub restrict: bool,
 }

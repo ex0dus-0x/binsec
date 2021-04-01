@@ -1,7 +1,4 @@
 //! Implements file output dumping given a file format.
-use crate::detect::Detector;
-use crate::errors::BinResult;
-
 use colored::*;
 use structmap::value::Value;
 
