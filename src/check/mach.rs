@@ -12,8 +12,7 @@ use structmap::value::Value;
 use structmap::ToHashMap;
 use structmap_derive::ToHashMap;
 
-use crate::check::Analyze;
-use crate::format::FeatureMap;
+use crate::check::{Analyze, BasicInfo, Detection};
 
 const MH_ALLOW_STACK_EXECUTION: u32 = 0x0002_0000;
 const MH_NO_HEAP_EXECUTION: u32 = 0x0100_0000;
@@ -33,8 +32,18 @@ pub struct MachAnalyze {
     pub restrict: bool,
 }
 
+impl Detection for MachAnalyze {}
+
 impl Analyze for MachO<'_> {
-    fn run_harden_check(&self) -> FeatureMap {
+    fn run_basic_checks(&self) -> BasicInfo {
+        todo!()
+    }
+
+    fn run_specific_checks(&self) -> Box<dyn Detection> {
+        todo!()
+    }
+
+    fn run_harden_checks(&self) -> Box<dyn Detection> {
         let nx_stack: bool = matches!(self.header.flags & MH_ALLOW_STACK_EXECUTION, 0);
         let nx_heap: bool = matches!(self.header.flags & MH_NO_HEAP_EXECUTION, 0);
 
@@ -59,12 +68,11 @@ impl Analyze for MachO<'_> {
             })
             .any(|s| s.to_lowercase() == "__restrict");
 
-        let machchecker = MachAnalyze {
+        Box::new(MachAnalyze {
             nx_stack,
             nx_heap,
             stack_canary,
             restrict,
-        };
-        MachAnalyze::to_hashmap(machchecker)
+        })
     }
 }
