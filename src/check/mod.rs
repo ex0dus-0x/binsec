@@ -2,14 +2,27 @@ pub mod elf;
 pub mod mach;
 pub mod pe;
 
-//  
+use serde::Serialize;
+
+#[derive(Serialize)]
 enum Arch {
     X86,
     X8664,
 } 
 
+#[derive(Serialize)]
+enum Runtime {
+    Golang,
+    Rustc,
+    Python,
+    MinGw,
+    Dotnet,
+    VisualBasic,
+    Gcc,
+}
+
 /// Basic information every binary format will return back for insight.
-#[derive(serde::Serialize)]
+#[derive(Serialize)]
 pub struct BasicInfo {
     // resolves the absolute path, if symlinked, to the target input
     abspath: String,
@@ -29,7 +42,7 @@ pub struct BasicInfo {
 
 /// Blanket trait implemented by structs that all store parsed info from running a static analysis
 /// on top the given executable format.
-trait Detection {}
+pub trait Detection {}
 
 /// Defines trait implemented by each supported libgoblin binary format to facilitate static checks.
 pub trait Analyze {
@@ -40,5 +53,5 @@ pub trait Analyze {
     fn run_specific_checks(&self) -> Box<dyn Detection>;
 
     // Parses executable for supported security mitigations
-    fn run_harden_check(&self) -> Box<dyn Detection>;
+    fn run_harden_checks(&self) -> Box<dyn Detection>;
 }

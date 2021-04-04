@@ -15,8 +15,7 @@ use structmap::value::Value;
 use structmap::ToHashMap;
 use structmap_derive::ToHashMap;
 
-use crate::check::{Analyze, Detection};
-use crate::format::FeatureMap;
+use crate::check::{Analyze, BasicInfo, Detection};
 
 /// Encapsulates an ELF object from libgoblin, in order to parse it and dissect out the necessary
 /// security mitigation features.
@@ -47,7 +46,16 @@ struct ElfHarden {
 impl Detection for ElfHarden {}
 
 impl Analyze for Elf<'_> {
-    fn run_harden_check(&self) -> Box<dyn Detection> {
+
+    fn run_basic_checks(&self) -> BasicInfo {
+        todo!()
+    }
+
+    fn run_specific_checks(&self) -> Box<dyn Detection> {
+        todo!()
+    }
+
+    fn run_harden_checks(&self) -> Box<dyn Detection> {
         // check for executable stack through program headers
         let exec_stack: bool = self
             .program_headers

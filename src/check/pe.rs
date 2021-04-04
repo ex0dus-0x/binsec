@@ -7,8 +7,7 @@ use structmap::value::Value;
 use structmap::ToHashMap;
 use structmap_derive::ToHashMap;
 
-use crate::check::Analyze;
-use crate::format::FeatureMap;
+use crate::check::{Analyze, BasicInfo, Detection};
 
 /// Struct defining security features parsed from PE, and
 /// derives serde de/serialize traits for structured output.
@@ -24,8 +23,18 @@ pub struct PeAnalyze {
     pub code_integrity: bool,
 }
 
+impl Detection for PeAnalyze {}
+
 impl Analyze for PE<'_> {
-    fn run_harden_check(&self) -> FeatureMap {
+    fn run_basic_checks(&self) -> BasicInfo {
+        todo!()
+    }
+
+    fn run_specific_checks(&self) -> Box<dyn Detection> {
+        todo!()
+    }
+
+    fn run_harden_checks(&self) -> Box<dyn Detection> {
         // check for DEP aka stack exec protection by checking the DLL characteristics
         let dep: bool = match self.header.optional_header {
             Some(optional_header) => {
@@ -49,12 +58,10 @@ impl Analyze for PE<'_> {
             }
             None => false,
         };
-
-        let pechecker = PeAnalyze {
+        Box::new(PeAnalyze {
             dep,
             cfg,
             code_integrity,
-        };
-        PeAnalyze::to_hashmap(pechecker)
+        })
     }
 }
