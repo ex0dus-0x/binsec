@@ -30,15 +30,9 @@ pub fn generate_table(name: &str, mapping: FeatureMap) -> String {
 
     for (name, feature) in mapping {
         let feature_cell = match feature {
-            Value::Bool(true) => {
-                TableCell::new_with_alignment("✔️".green(), 1, Alignment::Center)
-            }
-            Value::Bool(false) => {
-                TableCell::new_with_alignment("✖️".red(), 1, Alignment::Center)
-            }
-            Value::String(val) => {
-                TableCell::new_with_alignment(val.bold(), 1, Alignment::Center)
-            }
+            Value::Bool(true) => TableCell::new_with_alignment("✔️".green(), 1, Alignment::Center),
+            Value::Bool(false) => TableCell::new_with_alignment("✖️".red(), 1, Alignment::Center),
+            Value::String(val) => TableCell::new_with_alignment(val.bold(), 1, Alignment::Center),
             _ => TableCell::new_with_alignment(feature, 1, Alignment::Center),
         };
 

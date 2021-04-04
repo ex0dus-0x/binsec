@@ -2,43 +2,53 @@
 //! inputs. Should be used to detect format and security mitigations for a singular binary.
 #![allow(clippy::match_bool)]
 
-use crate::check::Checker;
-use crate::errors::{BinError, BinResult, ErrorKind};
+use crate::check::{BasicInfo, Analyze};
+use crate::errors::{BinError, BinResult};
 use crate::format::FeatureMap;
 
-use goblin::Object;
 use goblin::mach::Mach;
+use goblin::Object;
 
 use std::fs;
 use std::path::PathBuf;
 
-/// Wraps over an executable and implements checks configured by the user, returning a
-/// a map denoting presence of features checked for.
-pub struct Detector(Vec<u8>);
+
+/// Interfaces static analysis and wraps around parsed information for serialization.
+#[derive(serde::Serialize)]
+pub struct Detector {
+    basic: BasicInfo,
+    //specific:
+    //harden:
+}
 
 impl Detector {
-    pub fn new(path: PathBuf) -> BinResult<Self> {
-        Ok(Self(fs::read(path.as_path())?))
-    }
-
-    /// Detects exploit mitigations present in the parsed binary format.
-    pub fn harden(&self) -> BinResult<FeatureMap> {
-       match Object::parse(&self.0)? {
-            Object::Elf(elf) => Ok(elf.harden_check()),
-            Object::PE(pe) => Ok(pe.harden_check()),
+    pub fn run(binpath: PathBuf) -> BinResult<Self> {
+        let data: Vec<u8> = std::fs::read(binpath.as_path())?;
+        match Object::parse(&data)? {
+            Object::Elf(elf) => {
+                let _ = elf.run_harden_check();
+                todo!()
+            },
+            Object::PE(pe) => {
+                let _ = pe.run_harden_check();
+                todo!()
+            }
             Object::Mach(_mach) => match _mach {
-                Mach::Binary(mach) => Ok(mach.harden_check()),
-                Mach::Fat(_) => Err(BinError {
-                        kind: ErrorKind::BinaryError,
-                        msg: "does not support multiarch FAT binary containers yet".to_string(),
-                    })
+                Mach::Binary(mach) => {
+                    let _ = mach.run_harden_check();
+                    todo!()
                 },
+                Mach::Fat(_) => {
+                    return Err(BinError::new("does not support multiarch FAT binary containers yet"));
+                }
+            },
             _ => {
-                Err(BinError {
-                    kind: ErrorKind::BinaryError,
-                    msg: "unsupported filetype for analysis".to_string(),
-                })
+                return Err(BinError::new("unsupported filetype for analysis")); 
             }
         }
+    }
+
+    pub fn output(&self, json: Option<PathBuf>) {
+        todo!()
     }
 }

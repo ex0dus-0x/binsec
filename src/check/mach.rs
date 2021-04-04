@@ -8,20 +8,18 @@
 
 use goblin::mach::MachO;
 
-use serde::{Deserialize, Serialize};
-
 use structmap::value::Value;
 use structmap::ToHashMap;
 use structmap_derive::ToHashMap;
 
-use crate::check::Checker;
+use crate::check::Analyze;
 use crate::format::FeatureMap;
 
 const MH_ALLOW_STACK_EXECUTION: u32 = 0x0002_0000;
 const MH_NO_HEAP_EXECUTION: u32 = 0x0100_0000;
 
-#[derive(Deserialize, Serialize, ToHashMap, Default)]
-pub struct MachChecker {
+#[derive(serde::Serialize, ToHashMap, Default)]
+pub struct MachAnalyze {
     #[rename(name = "Non-Executable Stack")]
     pub nx_stack: bool,
 
@@ -35,8 +33,8 @@ pub struct MachChecker {
     pub restrict: bool,
 }
 
-impl Checker for MachO<'_> {
-    fn harden_check(&self) -> FeatureMap {
+impl Analyze for MachO<'_> {
+    fn run_harden_check(&self) -> FeatureMap {
         let nx_stack: bool = matches!(self.header.flags & MH_ALLOW_STACK_EXECUTION, 0);
         let nx_heap: bool = matches!(self.header.flags & MH_NO_HEAP_EXECUTION, 0);
 
@@ -61,12 +59,12 @@ impl Checker for MachO<'_> {
             })
             .any(|s| s.to_lowercase() == "__restrict");
 
-        let machchecker = MachChecker {
+        let machchecker = MachAnalyze {
             nx_stack,
             nx_heap,
             stack_canary,
             restrict,
         };
-        MachChecker::to_hashmap(machchecker)
+        MachAnalyze::to_hashmap(machchecker)
     }
 }
