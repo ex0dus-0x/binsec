@@ -1,13 +1,11 @@
 use clap::{App, AppSettings, Arg, ArgMatches};
 use colored::*;
 
+mod check;
 mod detect;
 mod errors;
-mod check;
 mod format;
-mod rule_engine;
 
-use crate::detect::Detector;
 use crate::errors::BinResult;
 
 use std::path::PathBuf;
@@ -31,8 +29,7 @@ fn parse_args<'a>() -> ArgMatches<'a> {
         .arg(
             Arg::with_name("BINARY")
                 .help("Path to binary or binaries to analyze.")
-                .index(1)
-                .multiple(true)
+                .takes_value(true)
                 .required(true),
         )
         .arg(
@@ -61,19 +58,19 @@ fn parse_args<'a>() -> ArgMatches<'a> {
 }
 
 fn run(args: ArgMatches) -> BinResult<()> {
-    let binaries: Vec<&str> = args.values_of("BINARY").unwrap().collect();
+    let binary: &str = args.value_of("BINARY").unwrap();
     let check: &str = args.value_of("check").unwrap();
     let json: bool = args.is_present("json");
 
-    for binary in binaries {
-        let binpath: PathBuf = PathBuf::from(binary.to_string());
-        let detector = Detector::run(binpath)?;
-        println!(
-            "\n[{}] {} {}\n",
-            "*".cyan(),
-            "Name:".bold().underline(),
-            binary
-        );
-    }
+    /*
+    let detector = Detector::run(binary)?;
+    println!(
+        "\n[{}] {} {}\n",
+        "*".cyan(),
+        "Name:".bold().underline(),
+        binary
+    );
+    detector.output();
+    */
     Ok(())
 }

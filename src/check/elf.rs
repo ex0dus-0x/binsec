@@ -11,19 +11,17 @@
 use goblin::elf::dynamic::{tag_to_str, Dyn};
 use goblin::elf::{program_header, Elf, ProgramHeader};
 
-use serde::{Deserialize, Serialize};
-
 use structmap::value::Value;
 use structmap::ToHashMap;
 use structmap_derive::ToHashMap;
 
-use crate::check::Checker;
+use crate::check::{Analyze, Detection};
 use crate::format::FeatureMap;
 
 /// Encapsulates an ELF object from libgoblin, in order to parse it and dissect out the necessary
 /// security mitigation features.
-#[derive(Deserialize, Serialize, ToHashMap)]
-struct ElfChecker {
+#[derive(serde::Serialize, ToHashMap, Default)]
+struct ElfHarden {
     #[rename(name = "Executable Stack (NX Bit)")]
     pub exec_stack: bool,
 
@@ -46,22 +44,10 @@ struct ElfChecker {
     pub ubsan: bool,
 }
 
-impl Default for ElfChecker {
-    fn default() -> Self {
-        Self {
-            exec_stack: false,
-            stack_canary: false,
-            pie: false,
-            relro: String::new(),
-            fortify_source: false,
-            asan: false,
-            ubsan: false,
-        }
-    }
-}
+impl Detection for ElfHarden {}
 
-impl Checker for Elf<'_> {
-    fn harden_check(&self) -> FeatureMap {
+impl Analyze for Elf<'_> {
+    fn run_harden_check(&self) -> Box<dyn Detection> {
         // check for executable stack through program headers
         let exec_stack: bool = self
             .program_headers
@@ -162,7 +148,7 @@ impl Checker for Elf<'_> {
         };
         */
 
-        let checker: ElfChecker = ElfChecker {
+        Box::new(ElfHarden {
             exec_stack,
             stack_canary,
             fortify_source,
@@ -170,7 +156,6 @@ impl Checker for Elf<'_> {
             relro,
             asan,
             ubsan,
-        };
-        ElfChecker::to_hashmap(checker)
+        })
     }
 }
