@@ -16,7 +16,6 @@ use std::path::PathBuf;
 //#[derive(serde::Serialize)]
 pub struct Detector {
     basic: BasicInfo,
-    specific: Box<dyn Detection>,
     harden: Box<dyn Detection>,
 }
 
@@ -32,14 +31,9 @@ impl Detector {
                 let _ = pe.run_harden_checks();
                 todo!()
             }
-            Object::Mach(_mach) => match _mach {
-                Mach::Binary(mach) => {
-                    let _ = mach.run_harden_checks();
-                    todo!()
-                },
-                Mach::Fat(_) => {
-                    return Err(BinError::new("does not support multiarch FAT binary containers yet"));
-                }
+            Object::Mach(Mach::binary(mach)) => {
+                let _ = mach.run_harden_checks();
+                todo!()
             },
             _ => {
                 return Err(BinError::new("unsupported filetype for analysis")); 
