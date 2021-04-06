@@ -4,39 +4,14 @@ pub mod pe;
 
 use serde::Serialize;
 
-#[derive(Serialize)]
-enum Arch {
-    X86,
-    X8664,
-} 
-
-#[derive(Serialize)]
-enum Runtime {
-    Golang,
-    Rustc,
-    Python,
-    MinGw,
-    Dotnet,
-    VisualBasic,
-    Gcc,
-}
-
 /// Basic information every binary format will return back for insight.
 #[derive(Serialize)]
 pub struct BasicInfo {
-    // resolves the absolute path, if symlinked, to the target input
     abspath: String,
-
-    // which architecture the binary runs on
-    arch: Arch,
-
-    // compiler/language used to compile executable
-    runtime: Runtime,
-
-    // detects if compression/packing based on entropy
-    compression: bool,
-    
-    // TODO
+    format: String,
+    arch: String,
+    timestamp: String,
+    filesize: String,
     entry_point: String,
 }
 
