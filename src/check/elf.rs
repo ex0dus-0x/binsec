@@ -9,7 +9,7 @@
 //! * Undefined Behavior Sanitizer
 
 use goblin::elf::dynamic::{tag_to_str, Dyn};
-use goblin::elf::{program_header, Elf, ProgramHeader};
+use goblin::elf::{header, program_header, Elf, ProgramHeader};
 
 use structmap::value::Value;
 use structmap::ToHashMap;
@@ -20,12 +20,9 @@ use crate::check::{Analyze, BasicInfo, Detection};
 /// Encapsulates an ELF object from libgoblin, in order to parse it and dissect out the necessary
 /// security mitigation features.
 #[derive(serde::Serialize, ToHashMap, Default)]
-struct ElfHarden {
+pub struct ElfHarden {
     #[rename(name = "Executable Stack (NX Bit)")]
     pub exec_stack: bool,
-
-    #[rename(name = "Executable Stack (NX Bit)")]
-    pub stack_canary: bool,
 
     #[rename(name = "Position Independent Executable / ASLR")]
     pub pie: bool,
@@ -33,78 +30,45 @@ struct ElfHarden {
     #[rename(name = "Read-Only Relocatable")]
     pub relro: String,
 
+    #[rename(name = "Stack Canary")]
+    pub stack_canary: bool,
+
     #[rename(name = "FORTIFY_SOURCE")]
     pub fortify_source: bool,
-
-    #[rename(name = "ASan")]
-    pub asan: bool,
-
-    #[rename(name = "UBSan")]
-    pub ubsan: bool,
 }
 
 impl Detection for ElfHarden {}
 
 impl Analyze for Elf<'_> {
-
-    fn run_basic_checks(&self) -> BasicInfo {
-        todo!()
+    
+    fn get_architecture(&self) -> String {
+        header::machine_to_str(self.header.e_machine).to_string()
     }
 
-    fn run_specific_checks(&self) -> Box<dyn Detection> {
-        todo!()
+    fn get_entry_point(&self) -> String {
+        format!("{:x}", self.header.e_entry)
     }
 
-    fn run_harden_checks(&self) -> Box<dyn Detection> {
-        // check for executable stack through program headers
-        let exec_stack: bool = self
-            .program_headers
-            .iter()
-            .any(|ph| program_header::pt_to_str(ph.p_type) == "PT_GNU_STACK" && ph.p_flags == 6);
-
-        // check for stack canary
-        let stack_canary: bool = self
-            .dynsyms
-            .iter()
+    fn symbol_match(&self, cb: fn(&str) -> bool) -> bool {
+        self.dynsyms.iter()
             .filter_map(|sym| self.dynstrtab.get(sym.st_name))
             .any(|name| match name {
-                Ok(e) => (e == "__stack_chk_fail"),
+                Ok(e) => cb(e),
                 _ => false,
-            });
+            })
+    }
 
-        // check for FORTIFY_SOURCE calls
-        let fortify_source: bool = self
-            .dynsyms
+    fn exec_stack(&self) -> bool {
+        self.program_headers
             .iter()
-            .filter_map(|sym| self.dynstrtab.get(sym.st_name))
-            .any(|name| match name {
-                Ok(e) => e.ends_with("_chk"),
-                _ => false,
-            });
+            .any(|ph| program_header::pt_to_str(ph.p_type) == "PT_GNU_STACK" && ph.p_flags == 6)
+    }
 
-        // check for ASan calls
-        let asan: bool = self
-            .dynsyms
-            .iter()
-            .filter_map(|sym| self.dynstrtab.get(sym.st_name))
-            .any(|name| match name {
-                Ok(e) => e.starts_with("__asan"),
-                _ => false,
-            });
+    fn aslr(&self) -> bool {
+        matches!(self.header.e_type, 3)
+    }
 
-        // check for UBSan calls
-        let ubsan: bool = self
-            .dynsyms
-            .iter()
-            .filter_map(|sym| self.dynstrtab.get(sym.st_name))
-            .any(|name| match name {
-                Ok(e) => e.starts_with("__ubsan"),
-                _ => false,
-            });
-
-        // check for position-independent executable
-        let pie: bool = matches!(self.header.e_type, 3);
-
+    /*
         // check for RELRO
         let relro_header: Option<ProgramHeader> = self
             .program_headers
@@ -136,34 +100,6 @@ impl Analyze for Elf<'_> {
                 relro = "NONE".to_string();
             }
         };
-
-        /*
-        // get paths specified in DT_RUNPATH
-        let runpath: Vec<String> = match &self.dynamic {
-            Some(dynamic) => {
-                let mut res_vec: Vec<String> = vec![];
-                for dy in &dynamic.dyns {
-                    if dy.d_tag == DT_RUNPATH {
-                        let val = self.dynstrtab.get(dy.d_val as usize);
-                        if let Some(Ok(name)) = val {
-                            res_vec = name.split(':').map(|x| x.to_string()).collect();
-                        }
-                    }
-                }
-                res_vec
-            }
-            None => vec![],
-        };
-        */
-
-        Box::new(ElfHarden {
-            exec_stack,
-            stack_canary,
-            fortify_source,
-            pie,
-            relro,
-            asan,
-            ubsan,
-        })
     }
+*/
 }

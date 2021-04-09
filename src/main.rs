@@ -1,5 +1,3 @@
-use clap::{App, AppSettings, Arg, ArgMatches};
-use colored::*;
 
 mod check;
 mod detect;
@@ -7,7 +5,7 @@ mod errors;
 mod format;
 
 use crate::errors::BinResult;
-
+use clap::{App, AppSettings, Arg, ArgMatches};
 use std::path::PathBuf;
 
 fn main() {
@@ -59,17 +57,10 @@ fn parse_args<'a>() -> ArgMatches<'a> {
 
 fn run(args: ArgMatches) -> BinResult<()> {
     let binary: &str = args.value_of("BINARY").unwrap();
-    let check: &str = args.value_of("check").unwrap();
     let json: bool = args.is_present("json");
 
     /*
     let detector = Detector::run(binary)?;
-    println!(
-        "\n[{}] {} {}\n",
-        "*".cyan(),
-        "Name:".bold().underline(),
-        binary
-    );
     detector.output();
     */
     Ok(())

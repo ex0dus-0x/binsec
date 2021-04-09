@@ -12,7 +12,7 @@ use crate::check::{Analyze, BasicInfo, Detection};
 /// Struct defining security features parsed from PE, and
 /// derives serde de/serialize traits for structured output.
 #[derive(serde::Serialize, ToHashMap, Default)]
-pub struct PeAnalyze {
+pub struct PeHarden {
     #[rename(name = "Data Execution Prevention (DEP)")]
     pub dep: bool,
 
@@ -23,17 +23,35 @@ pub struct PeAnalyze {
     pub code_integrity: bool,
 }
 
-impl Detection for PeAnalyze {}
+impl Detection for PeHarden {}
 
 impl Analyze for PE<'_> {
-    fn run_basic_checks(&self) -> BasicInfo {
+
+    fn get_architecture(&self) -> String {
+        if self.is_64 {
+            String::from("PE32+")
+        } else {
+            String::from("PE32")
+        }
+    }
+
+    fn get_entry_point(&self) -> String {
+        format!("{}", self.entry)
+    }
+
+    fn symbol_match(&self, cb: fn(&str) -> bool) -> bool {
         todo!()
     }
 
-    fn run_specific_checks(&self) -> Box<dyn Detection> {
-        todo!()
+    fn exec_stack(&self) -> bool {
+        false
     }
 
+    fn aslr(&self) -> bool {
+        false
+    }
+
+    /*
     fn run_harden_checks(&self) -> Box<dyn Detection> {
         // check for DEP aka stack exec protection by checking the DLL characteristics
         let dep: bool = match self.header.optional_header {
@@ -64,4 +82,5 @@ impl Analyze for PE<'_> {
             code_integrity,
         })
     }
+    */
 }
