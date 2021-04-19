@@ -1,4 +1,3 @@
-
 mod check;
 mod detect;
 mod errors;

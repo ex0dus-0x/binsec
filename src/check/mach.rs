@@ -35,14 +35,8 @@ pub struct MachAnalyze {
 impl Detection for MachAnalyze {}
 
 impl Analyze for MachO<'_> {
-    fn run_basic_checks(&self) -> BasicInfo {
-        todo!()
-    }
 
-    fn run_specific_checks(&self) -> Box<dyn Detection> {
-        todo!()
-    }
-
+    /*
     fn run_harden_checks(&self) -> Box<dyn Detection> {
         let nx_stack: bool = matches!(self.header.flags & MH_ALLOW_STACK_EXECUTION, 0);
         let nx_heap: bool = matches!(self.header.flags & MH_NO_HEAP_EXECUTION, 0);
@@ -75,4 +69,5 @@ impl Analyze for MachO<'_> {
             restrict,
         })
     }
+    */
 }
