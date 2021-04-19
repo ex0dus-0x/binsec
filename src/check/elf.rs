@@ -1,4 +1,9 @@
-//! Check for the following exploit mitigations:
+//! ### ELF-Specific Checks:
+//!
+//! * Static Compilation
+//! * Stripped Executable
+//!
+//! ### Exploit Mitigations:
 //!
 //! * NX (Non-eXecutable bit) stack
 //! * Stack Canaries
@@ -15,7 +20,18 @@ use structmap::value::Value;
 use structmap::ToHashMap;
 use structmap_derive::ToHashMap;
 
-use crate::check::{Analyze, BasicInfo, Detection};
+use crate::check::{Analyze, Detection};
+
+#[derive(serde::Serialize, ToHashMap, Default)]
+pub struct ElfBasic {
+    #[rename(name = "Statically Compiled")]
+    static_comp: bool,
+
+    #[rename(name = "Stripped Binary")]
+    stripped: bool,
+}
+
+impl Detection for ElfBasic {}
 
 /// Encapsulates an ELF object from libgoblin, in order to parse it and dissect out the necessary
 /// security mitigation features.
@@ -40,7 +56,6 @@ pub struct ElfHarden {
 impl Detection for ElfHarden {}
 
 impl Analyze for Elf<'_> {
-    
     fn get_architecture(&self) -> String {
         header::machine_to_str(self.header.e_machine).to_string()
     }
@@ -50,14 +65,25 @@ impl Analyze for Elf<'_> {
     }
 
     fn symbol_match(&self, cb: fn(&str) -> bool) -> bool {
-        self.dynsyms.iter()
+        self.dynsyms
+            .iter()
             .filter_map(|sym| self.dynstrtab.get(sym.st_name))
             .any(|name| match name {
                 Ok(e) => cb(e),
                 _ => false,
             })
     }
+}
 
+/// Custom trait implemented to support ELF-specific static checks that can't be handled by
+/// using exposed methods through the `Analyze` trait.
+pub trait ElfChecks {
+    fn exec_stack(&self) -> bool;
+    fn aslr(&self) -> bool;
+    fn relro(&self) -> String;
+}
+
+impl ElfChecks for Elf<'_> {
     fn exec_stack(&self) -> bool {
         self.program_headers
             .iter()
@@ -68,8 +94,7 @@ impl Analyze for Elf<'_> {
         matches!(self.header.e_type, 3)
     }
 
-    /*
-        // check for RELRO
+    fn relro(&self) -> String {
         let relro_header: Option<ProgramHeader> = self
             .program_headers
             .iter()
@@ -99,7 +124,7 @@ impl Analyze for Elf<'_> {
             None => {
                 relro = "NONE".to_string();
             }
-        };
+        }
+        relro
     }
-*/
 }
