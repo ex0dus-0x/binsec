@@ -17,15 +17,15 @@ opt-level = 'z'
 lto = true
 
 [dependencies]
-clap = "2.33.3"
+clap = "2.33"
 
-term-table = "1.3.0"
-colored = "2.0.0"
+term-table = "1.3"
+colored = "2.0"
 
-goblin = "0.3.0"
+goblin = "0.4.0"
 byte-unit = "4.0.10"
 
-structmap = "0.1.3"
-structmap-derive = "0.1.3"
-serde_json = "1.0.59"
-serde = { version = "1.0.118", features = ["derive"] }
+structmap = "0.1.4"
+structmap-derive = "0.1.4"
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }

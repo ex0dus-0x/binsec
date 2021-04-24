@@ -4,6 +4,8 @@ mod errors;
 mod format;
 
 use crate::errors::BinResult;
+use crate::detect::Detector;
+
 use clap::{App, AppSettings, Arg, ArgMatches};
 use std::path::PathBuf;
 
@@ -57,10 +59,7 @@ fn parse_args<'a>() -> ArgMatches<'a> {
 fn run(args: ArgMatches) -> BinResult<()> {
     let binary: &str = args.value_of("BINARY").unwrap();
     let json: bool = args.is_present("json");
-
-    /*
-    let detector = Detector::run(binary)?;
-    detector.output();
-    */
+    let detector = Detector::run(PathBuf::from(binary))?;
+    detector.output(None);
     Ok(())
 }

@@ -6,12 +6,14 @@ use crate::check::elf::{ElfChecks, ElfHarden};
 use crate::check::pe::{PeChecks, PeHarden};
 use crate::check::{Analyze, BasicInfo, Detection, Instrumentation};
 use crate::errors::{BinError, BinResult};
-use crate::format::FeatureMap;
+use crate::format::{self, FeatureMap};
 
 use goblin::mach::Mach;
 use goblin::Object;
 
 use byte_unit::Byte;
+
+use structmap::ToMap;
 
 use std::fs;
 use std::path::PathBuf;
@@ -22,7 +24,7 @@ pub struct Detector {
     basic: BasicInfo,
     //compilation: Box<dyn Detection>,
     harden: Box<dyn Detection>,
-    instrumentation: Option<Box<dyn Detection>>,
+    instrumentation: Option<Instrumentation>,
     //matches: Box<dyn Detection>,
 }
 
@@ -40,9 +42,9 @@ impl Detector {
         let filesize: String = byte.get_appropriate_unit(false).to_string();
 
         // parse out readable modified timestamp
-        let timestamp: Option<String> = match metadata.accessed() {
-            Ok(time) => Some(String::new()),
-            Err(_) => None,
+        let timestamp: String = match metadata.accessed() {
+            Ok(time) => String::new(),
+            Err(_) => String::new(),
         };
 
         let data: Vec<u8> = std::fs::read(&binpath)?;
@@ -63,12 +65,12 @@ impl Detector {
                     stack_canary: elf.symbol_match(|x| x == "__stack_chk_fail"),
                     fortify_source: elf.symbol_match(|x| x.ends_with("_chk")),
                 }),
-                instrumentation: Some(Box::new(Instrumentation {
+                instrumentation: Some(Instrumentation {
                     afl: elf.symbol_match(|x| x.starts_with("__afl")),
                     asan: elf.symbol_match(|x| x.starts_with("__asan")),
                     ubsan: elf.symbol_match(|x| x.starts_with("__ubsan")),
                     llvm: elf.symbol_match(|x| x.starts_with("__llvm")),
-                })),
+                }),
             }),
             Object::PE(pe) => Ok(Self {
                 basic: BasicInfo {
@@ -86,9 +88,7 @@ impl Detector {
                 }),
                 instrumentation: None,
             }),
-            Object::Mach(Mach::Binary(mach)) => {
-                todo!()
-            }
+            Object::Mach(Mach::Binary(mach)) => todo!(),
             _ => {
                 return Err(BinError::new("unsupported filetype for analysis"));
             }
@@ -97,6 +97,10 @@ impl Detector {
 
     /// If JSON path is specified, location will
     pub fn output(&self, json: Option<PathBuf>) {
-        todo!()
+        if let Some(path) = json {
+        } else {
+            let basic_table: FeatureMap = BasicInfo::to_genericmap(self.basic.clone());
+            println!("{}", format::generate_table("BASIC", basic_table));
+        }
     }
 }

@@ -4,14 +4,14 @@
 use goblin::pe::PE;
 
 use structmap::value::Value;
-use structmap::ToHashMap;
-use structmap_derive::ToHashMap;
+use structmap::{ToMap, GenericMap, StringMap};
+use structmap_derive::ToMap;
 
 use crate::check::{Analyze, Detection};
 
 /// Struct defining security features parsed from PE, and
 /// derives serde de/serialize traits for structured output.
-#[derive(serde::Serialize, ToHashMap, Default)]
+#[derive(serde::Serialize, ToMap, Default)]
 pub struct PeHarden {
     #[rename(name = "Data Execution Prevention (DEP)")]
     pub dep: bool,

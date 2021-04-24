@@ -9,15 +9,15 @@
 use goblin::mach::MachO;
 
 use structmap::value::Value;
-use structmap::ToHashMap;
-use structmap_derive::ToHashMap;
+use structmap::ToMap;
+use structmap_derive::ToMap;
 
 use crate::check::{Analyze, BasicInfo, Detection};
 
 const MH_ALLOW_STACK_EXECUTION: u32 = 0x0002_0000;
 const MH_NO_HEAP_EXECUTION: u32 = 0x0100_0000;
 
-#[derive(serde::Serialize, ToHashMap, Default)]
+#[derive(serde::Serialize, ToMap, Default)]
 pub struct MachAnalyze {
     #[rename(name = "Non-Executable Stack")]
     pub nx_stack: bool,
