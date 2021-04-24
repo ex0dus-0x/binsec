@@ -24,6 +24,7 @@ colored = "2.0"
 
 goblin = "0.4.0"
 byte-unit = "4.0.10"
+chrono = "0.4"
 
 structmap = "0.1.4"
 structmap-derive = "0.1.4"

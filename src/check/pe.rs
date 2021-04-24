@@ -39,7 +39,9 @@ impl Analyze for PE<'_> {
     }
 
     fn symbol_match(&self, cb: fn(&str) -> bool) -> bool {
-        todo!()
+        self.imports
+            .iter()
+            .any(|import| cb(&import.name))
     }
 }
 

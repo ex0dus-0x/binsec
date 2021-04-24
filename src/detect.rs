@@ -12,6 +12,7 @@ use goblin::mach::Mach;
 use goblin::Object;
 
 use byte_unit::Byte;
+use chrono::prelude::*;
 
 use structmap::ToMap;
 
@@ -43,8 +44,11 @@ impl Detector {
 
         // parse out readable modified timestamp
         let timestamp: String = match metadata.accessed() {
-            Ok(time) => String::new(),
-            Err(_) => String::new(),
+            Ok(time) => {
+                let datetime: DateTime<Utc> = time.into();
+                datetime.format("%Y-%m-%d %H:%M:%S").to_string()
+            },
+            Err(_) => String::from("N/A"),
         };
 
         let data: Vec<u8> = std::fs::read(&binpath)?;
@@ -86,9 +90,14 @@ impl Detector {
                     cfg: pe.parse_opt_header(0x4000),
                     code_integrity: pe.parse_opt_header(0x0080),
                 }),
-                instrumentation: None,
+                instrumentation: Some(Instrumentation {
+                    afl: pe.symbol_match(|x| x.starts_with("__afl")),
+                    asan: pe.symbol_match(|x| x.starts_with("__asan")),
+                    ubsan: pe.symbol_match(|x| x.starts_with("__ubsan")),
+                    llvm: pe.symbol_match(|x| x.starts_with("__llvm")),
+                }),
             }),
-            Object::Mach(Mach::Binary(mach)) => todo!(),
+            Object::Mach(Mach::Binary(_mach)) => todo!(),
             _ => {
                 return Err(BinError::new("unsupported filetype for analysis"));
             }
@@ -98,9 +107,19 @@ impl Detector {
     /// If JSON path is specified, location will
     pub fn output(&self, json: Option<PathBuf>) {
         if let Some(path) = json {
-        } else {
-            let basic_table: FeatureMap = BasicInfo::to_genericmap(self.basic.clone());
-            println!("{}", format::generate_table("BASIC", basic_table));
+            return ();
+        }
+        
+        // get basic information first
+        let basic_table: FeatureMap = BasicInfo::to_genericmap(self.basic.clone());
+        println!("{}", format::generate_table("BASIC", basic_table));
+
+        // exploit mitigations
+
+        // get instrumentation is
+        if let Some(inst) = &self.instrumentation {
+            let inst_table: FeatureMap = Instrumentation::to_genericmap(inst.clone());
+            println!("{}", format::generate_table("INSTRUMENTATION", inst_table));
         }
     }
 }

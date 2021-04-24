@@ -48,7 +48,7 @@ pub trait Analyze {
 }
 
 /// Defines instrumentation routines found in the executable, used for every binary format.
-#[derive(Serialize, ToMap, Default)]
+#[derive(Serialize, ToMap, Default, Clone)]
 pub struct Instrumentation {
     #[rename(name = "AFL")]
     pub afl: bool,
