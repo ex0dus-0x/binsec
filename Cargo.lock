@@ -93,9 +93,9 @@ dependencies = [
 
 [[package]]
 name = "goblin"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c69552f48b18aa6102ce0c82dd9bc9d3f8af5fc0a5797069b1b466b90570e39c"
+checksum = "532a09cd3df2c6bbfc795fb0434bff8f22255d1d07328180e918a2e6ce122d4d"
 dependencies = [
  "log",
  "plain",
@@ -251,18 +251,18 @@ checksum = "8ea5119cdb4c55b55d432abb513a0429384878c15dde60cc77b1c99de1a95a6a"
 
 [[package]]
 name = "structmap"
-version = "0.1.3"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ba6ea058ba55986b097d7aa3185127b72f74253912e433d14d9ea97270c3450"
+checksum = "43702ab05f77a95ad09ebb2e45bfdbdfc9ef07bf7c2076efa3d793a0585180d6"
 dependencies = [
  "structmap-derive",
 ]
 
 [[package]]
 name = "structmap-derive"
-version = "0.1.3"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5e4af615084b042fe8e7c1752cd999a73f8868a0c5030891056da0be8699d38"
+checksum = "f9f593667cc725d98581f8bfdbdee895c57cfa80796df16d5e8c3409a12749c5"
 dependencies = [
  "proc-macro2",
  "quote",

@@ -17,12 +17,12 @@ use goblin::elf::dynamic::{tag_to_str, Dyn};
 use goblin::elf::{header, program_header, Elf, ProgramHeader};
 
 use structmap::value::Value;
-use structmap::ToHashMap;
-use structmap_derive::ToHashMap;
+use structmap::{ToMap, StringMap, GenericMap};
+use structmap_derive::ToMap;
 
 use crate::check::{Analyze, Detection};
 
-#[derive(serde::Serialize, ToHashMap, Default)]
+#[derive(serde::Serialize, ToMap, Default)]
 pub struct ElfBasic {
     #[rename(name = "Statically Compiled")]
     static_comp: bool,
@@ -35,7 +35,7 @@ impl Detection for ElfBasic {}
 
 /// Encapsulates an ELF object from libgoblin, in order to parse it and dissect out the necessary
 /// security mitigation features.
-#[derive(serde::Serialize, ToHashMap, Default)]
+#[derive(serde::Serialize, ToMap, Default)]
 pub struct ElfHarden {
     #[rename(name = "Executable Stack (NX Bit)")]
     pub exec_stack: bool,

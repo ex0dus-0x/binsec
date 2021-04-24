@@ -18,8 +18,8 @@ pub fn generate_table(name: &str, mapping: FeatureMap) -> String {
 
     // initialize blank style term table
     let mut table = Table::new();
-    table.max_column_width = 90;
-    table.style = TableStyle::rounded();
+    table.max_column_width = 200;
+    table.style = TableStyle::simple();
 
     // create bolded header
     table.add_row(Row::new(vec![TableCell::new_with_alignment(
