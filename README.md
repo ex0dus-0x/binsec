@@ -12,15 +12,19 @@
 
 Swiss Army Knife for Binary (In)security
 
-<img src="https://i.imgur.com/ELu2sgF.png">
 
-__binsec__ is a portable and cross-platform utility for detecting security mitigations and features across ELF, PE and Mach-O executable formats.
+__binsec__ is a cross-platform static analysis utility for detecting security capabilities for ELF/PE/Mach-O binary formats. It's useful
+for reverse engineers and vulnerability researchers gain quick insight into closed-source targets, build faster detection pipelines, and
 
 ## Features
 
-* Robust checks for a wide variety of security mitigations across ELF/PE/Mach-O binaries.
-* Backends [libgoblin](https://github.com/m4b/goblin) for fast and cross-platform binary parsing.
-* Can generate serializable outputs for storage/logging consumption.
+__binsec__ supports static detection for a variety of checks:
+
+* Compilation Features
+* Exploit Mitigations
+* Dynamic Instrumentation
+* Anti-Analysis (TODO)
+* Interesting Pattern Matches (TODO)
 
 ## Usage
 
