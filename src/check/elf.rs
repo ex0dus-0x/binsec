@@ -22,7 +22,7 @@ use structmap_derive::ToMap;
 
 use crate::check::{Analyze, Detection};
 
-#[derive(serde::Serialize, ToMap, Default)]
+#[derive(serde::Serialize, ToMap, Default, Clone)]
 pub struct ElfBasic {
     #[rename(name = "Statically Compiled")]
     static_comp: bool,
@@ -31,11 +31,9 @@ pub struct ElfBasic {
     stripped: bool,
 }
 
-impl Detection for ElfBasic {}
-
 /// Encapsulates an ELF object from libgoblin, in order to parse it and dissect out the necessary
 /// security mitigation features.
-#[derive(serde::Serialize, ToMap, Default)]
+#[derive(serde::Serialize, ToMap, Default, Clone)]
 pub struct ElfHarden {
     #[rename(name = "Executable Stack (NX Bit)")]
     pub exec_stack: bool,
@@ -53,7 +51,11 @@ pub struct ElfHarden {
     pub fortify_source: bool,
 }
 
-impl Detection for ElfHarden {}
+impl Detection for ElfHarden {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+}
 
 impl Analyze for Elf<'_> {
     fn get_architecture(&self) -> String {
@@ -65,9 +67,9 @@ impl Analyze for Elf<'_> {
     }
 
     fn symbol_match(&self, cb: fn(&str) -> bool) -> bool {
-        self.dynsyms
+        self.syms
             .iter()
-            .filter_map(|sym| self.dynstrtab.get(sym.st_name))
+            .filter_map(|sym| self.strtab.get(sym.st_name))
             .any(|name| match name {
                 Ok(e) => cb(e),
                 _ => false,

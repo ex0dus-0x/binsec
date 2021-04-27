@@ -11,7 +11,7 @@ use crate::check::{Analyze, Detection};
 
 /// Struct defining security features parsed from PE, and
 /// derives serde de/serialize traits for structured output.
-#[derive(serde::Serialize, ToMap, Default)]
+#[derive(serde::Serialize, ToMap, Default, Clone)]
 pub struct PeHarden {
     #[rename(name = "Data Execution Prevention (DEP)")]
     pub dep: bool,
@@ -23,7 +23,11 @@ pub struct PeHarden {
     pub code_integrity: bool,
 }
 
-impl Detection for PeHarden {}
+impl Detection for PeHarden {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+}
 
 impl Analyze for PE<'_> {
     fn get_architecture(&self) -> String {
