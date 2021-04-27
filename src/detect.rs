@@ -47,7 +47,7 @@ impl Detector {
             Ok(time) => {
                 let datetime: DateTime<Utc> = time.into();
                 datetime.format("%Y-%m-%d %H:%M:%S").to_string()
-            },
+            }
             Err(_) => String::from(""),
         };
 
@@ -109,20 +109,24 @@ impl Detector {
         if let Some(path) = json {
             return ();
         }
-        
+
         // get basic information first
         let basic_table: FeatureMap = BasicInfo::to_genericmap(self.basic.clone());
         println!("{}", format::generate_table("BASIC", basic_table));
 
         // exploit mitigations
-        let mitigations: FeatureMap = if let Some(harden) = self.harden.as_any().downcast_ref::<ElfHarden>() {
-            ElfHarden::to_genericmap(harden.clone())
-        } else if let Some(harden) = self.harden.as_any().downcast_ref::<PeHarden>() {
-            PeHarden::to_genericmap(harden.clone())
-        } else {
-            todo!()
-        };
-        println!("{}", format::generate_table("EXPLOIT MITIGATIONS", mitigations));
+        let mitigations: FeatureMap =
+            if let Some(harden) = self.harden.as_any().downcast_ref::<ElfHarden>() {
+                ElfHarden::to_genericmap(harden.clone())
+            } else if let Some(harden) = self.harden.as_any().downcast_ref::<PeHarden>() {
+                PeHarden::to_genericmap(harden.clone())
+            } else {
+                todo!()
+            };
+        println!(
+            "{}",
+            format::generate_table("EXPLOIT MITIGATIONS", mitigations)
+        );
 
         // get instrumentation is
         if let Some(inst) = &self.instrumentation {

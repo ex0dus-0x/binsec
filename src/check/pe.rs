@@ -4,7 +4,7 @@
 use goblin::pe::PE;
 
 use structmap::value::Value;
-use structmap::{ToMap, GenericMap, StringMap};
+use structmap::{GenericMap, StringMap, ToMap};
 use structmap_derive::ToMap;
 
 use crate::check::{Analyze, Detection};
@@ -43,9 +43,7 @@ impl Analyze for PE<'_> {
     }
 
     fn symbol_match(&self, cb: fn(&str) -> bool) -> bool {
-        self.imports
-            .iter()
-            .any(|import| cb(&import.name))
+        self.imports.iter().any(|import| cb(&import.name))
     }
 }
 

@@ -3,8 +3,8 @@ mod detect;
 mod errors;
 mod format;
 
-use crate::errors::BinResult;
 use crate::detect::Detector;
+use crate::errors::BinResult;
 
 use clap::{App, AppSettings, Arg, ArgMatches};
 use std::path::PathBuf;
