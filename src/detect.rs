@@ -6,9 +6,9 @@ use crate::check::elf::{ElfChecks, ElfHarden};
 use crate::check::pe::{PeChecks, PeHarden};
 use crate::check::{Analyze, BasicInfo, Detection, Instrumentation};
 use crate::errors::{BinError, BinResult};
-use crate::format;
 
-use structmap::{ToMap, GenericMap};
+use structmap::value::Value;
+use structmap::{GenericMap, ToMap};
 
 use goblin::mach::Mach;
 use goblin::Object;
@@ -25,7 +25,7 @@ pub struct Detector {
     basic: BasicInfo,
     //compilation: Feature
     harden: Box<dyn Detection>,
-    instrumentation: Option<Instrumentation>,
+    instrumentation: Instrumentation,
     //matches: Box<dyn Detection>,
 }
 
@@ -69,12 +69,12 @@ impl Detector {
                     stack_canary: elf.symbol_match(|x| x == "__stack_chk_fail"),
                     fortify_source: elf.symbol_match(|x| x.ends_with("_chk")),
                 }),
-                instrumentation: Some(Instrumentation {
+                instrumentation: Instrumentation {
                     afl: elf.symbol_match(|x| x.starts_with("__afl")),
                     asan: elf.symbol_match(|x| x.starts_with("__asan")),
                     ubsan: elf.symbol_match(|x| x.starts_with("__ubsan")),
                     llvm: elf.symbol_match(|x| x.starts_with("__llvm")),
-                }),
+                },
             }),
             Object::PE(pe) => Ok(Self {
                 basic: BasicInfo {
@@ -90,12 +90,12 @@ impl Detector {
                     cfg: pe.parse_opt_header(0x4000),
                     code_integrity: pe.parse_opt_header(0x0080),
                 }),
-                instrumentation: Some(Instrumentation {
+                instrumentation: Instrumentation {
                     afl: pe.symbol_match(|x| x.starts_with("__afl")),
                     asan: pe.symbol_match(|x| x.starts_with("__asan")),
                     ubsan: pe.symbol_match(|x| x.starts_with("__ubsan")),
                     llvm: pe.symbol_match(|x| x.starts_with("__llvm")),
-                }),
+                },
             }),
             Object::Mach(Mach::Binary(_mach)) => todo!(),
             _ => {
@@ -105,14 +105,14 @@ impl Detector {
     }
 
     /// If JSON path is specified, location will
-    pub fn output(&self, json: Option<PathBuf>) {
+    pub fn output(&self, json: Option<PathBuf>) -> () {
         if let Some(path) = json {
             return ();
         }
 
         // get basic information first
         let basic_table: GenericMap = BasicInfo::to_genericmap(self.basic.clone());
-        println!("{}", format::generate_table("BASIC", basic_table));
+        println!("{}", Detector::table("BASIC", basic_table));
 
         // exploit mitigations
         let mitigations: GenericMap =
@@ -123,15 +123,47 @@ impl Detector {
             } else {
                 todo!()
             };
-        println!(
-            "{}",
-            format::generate_table("EXPLOIT MITIGATIONS", mitigations)
-        );
+        println!("{}", Detector::table("EXPLOIT MITIGATIONS", mitigations));
 
-        // get instrumentation is
-        if let Some(inst) = &self.instrumentation {
-            let inst_table: GenericMap = Instrumentation::to_genericmap(inst.clone());
-            println!("{}", format::generate_table("INSTRUMENTATION", inst_table));
+        // get instrumentation
+        let inst_table: GenericMap = Instrumentation::to_genericmap(self.instrumentation.clone());
+        println!("{}", Detector::table("INSTRUMENTATION", inst_table));
+    }
+
+    #[inline]
+    pub fn table(name: &str, mapping: GenericMap) -> String {
+        use term_table::{
+            row::Row,
+            table_cell::{Alignment, TableCell},
+        };
+        use term_table::{Table, TableStyle};
+
+        // initialize blank style term table
+        let mut table = Table::new();
+        table.max_column_width = 200;
+        table.style = TableStyle::blank();
+
+        // create bolded header
+        let header: String = format!("{}", name);
+        table.add_row(Row::new(vec![TableCell::new_with_alignment(
+            &header,
+            2,
+            Alignment::Center,
+        )]));
+
+        for (name, feature) in mapping {
+            let cell = match feature {
+                Value::Bool(true) => {
+                    TableCell::new_with_alignment("\x1b[0;32m✔️\x1b[0m", 1, Alignment::Right)
+                }
+                Value::Bool(false) => {
+                    TableCell::new_with_alignment("\x1b[0;31m✖️\x1b[0m", 1, Alignment::Right)
+                }
+                Value::String(val) => TableCell::new_with_alignment(val, 1, Alignment::Right),
+                _ => unimplemented!(),
+            };
+            table.add_row(Row::new(vec![TableCell::new(name), cell]));
         }
+        table.render()
     }
 }

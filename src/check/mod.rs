@@ -8,12 +8,10 @@ use structmap::value::Value;
 use structmap::{GenericMap, StringMap, ToMap};
 use structmap_derive::ToMap;
 
-use std::any::Any;
-
 /// Blanket trait implemented by structs that all store parsed info from running a static analysis
 /// on top the given executable format.
 pub trait Detection {
-    fn as_any(&self) -> &dyn Any;
+    fn as_any(&self) -> &dyn std::any::Any;
 }
 
 /// Basic information every binary format will return back for insight.
