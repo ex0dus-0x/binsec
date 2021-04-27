@@ -23,10 +23,11 @@ use std::path::PathBuf;
 //#[derive(serde::Serialize)]
 pub struct Detector {
     basic: BasicInfo,
-    //compilation: Feature
-    harden: Box<dyn Detection>,
+    //specific: Box<dyn Detection>,
+    //compilation: Box<dyn Detection>,
+    mitigations: Box<dyn Detection>,
     instrumentation: Instrumentation,
-    //matches: Box<dyn Detection>,
+    //matches: Matches,
 }
 
 impl Detector {
@@ -62,7 +63,7 @@ impl Detector {
                     filesize,
                     entry_point: elf.get_entry_point(),
                 },
-                harden: Box::new(ElfHarden {
+                mitigations: Box::new(ElfHarden {
                     exec_stack: elf.exec_stack(),
                     pie: elf.aslr(),
                     relro: elf.relro(),
@@ -85,7 +86,7 @@ impl Detector {
                     filesize,
                     entry_point: pe.get_entry_point(),
                 },
-                harden: Box::new(PeHarden {
+                mitigations: Box::new(PeHarden {
                     dep: pe.parse_opt_header(0x0100),
                     cfg: pe.parse_opt_header(0x4000),
                     code_integrity: pe.parse_opt_header(0x0080),
@@ -98,72 +99,50 @@ impl Detector {
                 },
             }),
             Object::Mach(Mach::Binary(_mach)) => todo!(),
-            _ => {
-                return Err(BinError::new("unsupported filetype for analysis"));
-            }
+            _ => Err(BinError::new("unsupported filetype for analysis")),
         }
     }
 
     /// If JSON path is specified, location will
-    pub fn output(&self, json: Option<PathBuf>) -> () {
-        if let Some(path) = json {
-            return ();
+    pub fn output(&self, _json: Option<PathBuf>) {
+        if let Some(_path) = _json {
+            todo!()
         }
 
         // get basic information first
         let basic_table: GenericMap = BasicInfo::to_genericmap(self.basic.clone());
-        println!("{}", Detector::table("BASIC", basic_table));
+        Detector::table("BASIC", basic_table);
 
         // exploit mitigations
         let mitigations: GenericMap =
-            if let Some(harden) = self.harden.as_any().downcast_ref::<ElfHarden>() {
-                ElfHarden::to_genericmap(harden.clone())
-            } else if let Some(harden) = self.harden.as_any().downcast_ref::<PeHarden>() {
-                PeHarden::to_genericmap(harden.clone())
+            if let Some(mitigations) = self.mitigations.as_any().downcast_ref::<ElfHarden>() {
+                ElfHarden::to_genericmap(mitigations.clone())
+            } else if let Some(mitigations) = self.mitigations.as_any().downcast_ref::<PeHarden>() {
+                PeHarden::to_genericmap(mitigations.clone())
             } else {
-                todo!()
+                unreachable!()
             };
-        println!("{}", Detector::table("EXPLOIT MITIGATIONS", mitigations));
+        Detector::table("EXPLOIT MITIGATIONS", mitigations);
 
         // get instrumentation
         let inst_table: GenericMap = Instrumentation::to_genericmap(self.instrumentation.clone());
-        println!("{}", Detector::table("INSTRUMENTATION", inst_table));
+        Detector::table("INSTRUMENTATION", inst_table);
     }
 
     #[inline]
-    pub fn table(name: &str, mapping: GenericMap) -> String {
-        use term_table::{
-            row::Row,
-            table_cell::{Alignment, TableCell},
-        };
-        use term_table::{Table, TableStyle};
-
-        // initialize blank style term table
-        let mut table = Table::new();
-        table.max_column_width = 200;
-        table.style = TableStyle::blank();
-
-        // create bolded header
-        let header: String = format!("{}", name);
-        table.add_row(Row::new(vec![TableCell::new_with_alignment(
-            &header,
-            2,
-            Alignment::Center,
-        )]));
-
+    pub fn table(name: &str, mapping: GenericMap) {
+        println!("-----------------------------------------------");
+        println!("{}", name);
+        println!("-----------------------------------------------\n");
         for (name, feature) in mapping {
-            let cell = match feature {
-                Value::Bool(true) => {
-                    TableCell::new_with_alignment("\x1b[0;32m✔️\x1b[0m", 1, Alignment::Right)
-                }
-                Value::Bool(false) => {
-                    TableCell::new_with_alignment("\x1b[0;31m✖️\x1b[0m", 1, Alignment::Right)
-                }
-                Value::String(val) => TableCell::new_with_alignment(val, 1, Alignment::Right),
+            let value: String = match feature {
+                Value::Bool(true) => String::from("\x1b[0;32m✔️\x1b[0m"),
+                Value::Bool(false) => String::from("\x1b[0;31m✖️\x1b[0m"),
+                Value::String(val) => val,
                 _ => unimplemented!(),
             };
-            table.add_row(Row::new(vec![TableCell::new(name), cell]));
+            println!("{0: <45} {1}", name, value);
         }
-        table.render()
+        println!();
     }
 }

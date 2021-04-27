@@ -31,19 +31,6 @@ fn parse_args<'a>() -> ArgMatches<'a> {
                 .required(true),
         )
         .arg(
-            Arg::with_name("check")
-                .help(
-                    "Sets the type of checks to run. Available: all, basic (default), \
-                      harden, or behavior.",
-                )
-                .short("c")
-                .long("check")
-                .takes_value(true)
-                .value_name("CHECK_NAME")
-                .possible_values(&["all", "basic", "harden", "behavior"])
-                .required(false),
-        )
-        .arg(
             Arg::with_name("json")
                 .help("Output results in JSON format.")
                 .short("j")
@@ -51,13 +38,12 @@ fn parse_args<'a>() -> ArgMatches<'a> {
                 .takes_value(false)
                 .required(false),
         )
-        // TODO: output path
         .get_matches()
 }
 
 fn run(args: ArgMatches) -> BinResult<()> {
     let binary: &str = args.value_of("BINARY").unwrap();
-    let json: bool = args.is_present("json");
+    let _json: bool = args.is_present("json");
     let detector = Detector::run(PathBuf::from(binary))?;
     detector.output(None);
     Ok(())
