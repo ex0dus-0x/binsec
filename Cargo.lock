@@ -291,8 +291,7 @@ checksum = "8ea5119cdb4c55b55d432abb513a0429384878c15dde60cc77b1c99de1a95a6a"
 [[package]]
 name = "structmap"
 version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43702ab05f77a95ad09ebb2e45bfdbdfc9ef07bf7c2076efa3d793a0585180d6"
+source = "git+https://github.com/ex0dus-0x/structmap#f69e333b75050cf4d921713fa495f7236846d972"
 dependencies = [
  "structmap-derive",
 ]
@@ -300,8 +299,7 @@ dependencies = [
 [[package]]
 name = "structmap-derive"
 version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9f593667cc725d98581f8bfdbdee895c57cfa80796df16d5e8c3409a12749c5"
+source = "git+https://github.com/ex0dus-0x/structmap#f69e333b75050cf4d921713fa495f7236846d972"
 dependencies = [
  "proc-macro2",
  "quote",
