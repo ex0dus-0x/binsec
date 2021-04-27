@@ -6,15 +6,15 @@ use crate::check::elf::{ElfChecks, ElfHarden};
 use crate::check::pe::{PeChecks, PeHarden};
 use crate::check::{Analyze, BasicInfo, Detection, Instrumentation};
 use crate::errors::{BinError, BinResult};
-use crate::format::{self, FeatureMap};
+use crate::format;
+
+use structmap::{ToMap, GenericMap};
 
 use goblin::mach::Mach;
 use goblin::Object;
 
 use byte_unit::Byte;
 use chrono::prelude::*;
-
-use structmap::ToMap;
 
 use std::fs;
 use std::path::PathBuf;
@@ -23,7 +23,7 @@ use std::path::PathBuf;
 //#[derive(serde::Serialize)]
 pub struct Detector {
     basic: BasicInfo,
-    //compilation: Box<dyn Detection>,
+    //compilation: Feature
     harden: Box<dyn Detection>,
     instrumentation: Option<Instrumentation>,
     //matches: Box<dyn Detection>,
@@ -111,11 +111,11 @@ impl Detector {
         }
 
         // get basic information first
-        let basic_table: FeatureMap = BasicInfo::to_genericmap(self.basic.clone());
+        let basic_table: GenericMap = BasicInfo::to_genericmap(self.basic.clone());
         println!("{}", format::generate_table("BASIC", basic_table));
 
         // exploit mitigations
-        let mitigations: FeatureMap =
+        let mitigations: GenericMap =
             if let Some(harden) = self.harden.as_any().downcast_ref::<ElfHarden>() {
                 ElfHarden::to_genericmap(harden.clone())
             } else if let Some(harden) = self.harden.as_any().downcast_ref::<PeHarden>() {
@@ -130,7 +130,7 @@ impl Detector {
 
         // get instrumentation is
         if let Some(inst) = &self.instrumentation {
-            let inst_table: FeatureMap = Instrumentation::to_genericmap(inst.clone());
+            let inst_table: GenericMap = Instrumentation::to_genericmap(inst.clone());
             println!("{}", format::generate_table("INSTRUMENTATION", inst_table));
         }
     }
