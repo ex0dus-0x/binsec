@@ -4,9 +4,9 @@ pub mod pe;
 
 use serde::Serialize;
 
-use structmap::{ToMap, GenericMap, StringMap};
-use structmap_derive::ToMap;
 use structmap::value::Value;
+use structmap::{GenericMap, StringMap, ToMap};
+use structmap_derive::ToMap;
 
 use std::any::Any;
 

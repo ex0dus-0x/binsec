@@ -17,7 +17,7 @@ use goblin::elf::dynamic::{tag_to_str, Dyn};
 use goblin::elf::{header, program_header, Elf, ProgramHeader};
 
 use structmap::value::Value;
-use structmap::{ToMap, StringMap, GenericMap};
+use structmap::{GenericMap, StringMap, ToMap};
 use structmap_derive::ToMap;
 
 use crate::check::{Analyze, Detection};
