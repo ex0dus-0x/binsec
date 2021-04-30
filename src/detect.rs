@@ -2,9 +2,10 @@
 //! inputs. Should be used to detect format and security mitigations for a singular binary.
 #![allow(clippy::match_bool)]
 
-use crate::check::elf::{ElfChecks, ElfHarden};
+use crate::check::elf::{ElfChecks, ElfCompilation, ElfHarden};
 use crate::check::pe::{PeChecks, PeHarden};
-use crate::check::{Analyze, BasicInfo, Detection, Instrumentation};
+use crate::check::{Analyze, Detection};
+use crate::check::common::{BasicInfo, Instrumentation};
 use crate::errors::{BinError, BinResult};
 
 use structmap::value::Value;
@@ -23,8 +24,7 @@ use std::path::PathBuf;
 //#[derive(serde::Serialize)]
 pub struct Detector {
     basic: BasicInfo,
-    //specific: Box<dyn Detection>,
-    //compilation: Box<dyn Detection>,
+    compilation: Box<dyn Detection>,
     mitigations: Box<dyn Detection>,
     instrumentation: Instrumentation,
     //matches: Matches,
@@ -63,6 +63,7 @@ impl Detector {
                     filesize,
                     entry_point: elf.get_entry_point(),
                 },
+                compilation: Box::new(ElfCompilation::default()),
                 mitigations: Box::new(ElfHarden {
                     exec_stack: elf.exec_stack(),
                     pie: elf.aslr(),
@@ -86,6 +87,7 @@ impl Detector {
                     filesize,
                     entry_point: pe.get_entry_point(),
                 },
+                compilation: Box::new(ElfCompilation::default()),
                 mitigations: Box::new(PeHarden {
                     dep: pe.parse_opt_header(0x0100),
                     cfg: pe.parse_opt_header(0x4000),
