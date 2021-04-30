@@ -12,13 +12,13 @@
 
 Swiss Army Knife for Binary (In)security
 
-
-__binsec__ is a cross-platform static analysis utility for detecting security capabilities for ELF/PE/Mach-O binary formats. It's useful
-for reverse engineers and vulnerability researchers gain quick insight into closed-source targets, build faster detection pipelines, and
+__binsec__ is a minimal static analysis utility for detecting security capabilities in ELF/PE/Mach-O executables. It's useful
+for reverse engineers and vulnerability researchers to gain quick insight into binary targets, build faster detection pipelines, and overall
+improve binary analysis.
 
 ## Features
 
-__binsec__ supports static detection for a variety of checks:
+The project currently supports static detection for a variety of checks:
 
 * Compilation Features
 * Exploit Mitigations

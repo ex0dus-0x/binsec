@@ -1,5 +1,8 @@
-//! ### ELF-Specific Checks:
+//! ### ELF-Specific Compilation Checks:
 //!
+//! * Compiler Runtime
+//! * Linker Path
+//! * Glibc Version
 //! * Static Compilation
 //! * Stripped Executable
 //!
@@ -22,13 +25,31 @@ use structmap_derive::ToMap;
 
 use crate::check::{Analyze, Detection};
 
+use std::any::Any;
+
+/// Compilation-specific checks to look for in the executable
 #[derive(serde::Serialize, ToMap, Default, Clone)]
-pub struct ElfBasic {
-    #[rename(name = "Statically Compiled")]
+pub struct ElfCompilation {
+    #[rename(name = "Compilation Runtime")]
+    runtime: String,
+
+    #[rename(name = "Linker Path")]
+    linker: String,
+
+    #[rename(name = "Glibc Version")]
+    glibc: String,
+
+    #[rename(name = "Statically Compiled?")]
     static_comp: bool,
 
-    #[rename(name = "Stripped Binary")]
+    #[rename(name = "Stripped Binary?")]
     stripped: bool,
+}
+
+impl Detection for ElfCompilation {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 /// Encapsulates an ELF object from libgoblin, in order to parse it and dissect out the necessary
@@ -52,7 +73,7 @@ pub struct ElfHarden {
 }
 
 impl Detection for ElfHarden {
-    fn as_any(&self) -> &dyn std::any::Any {
+    fn as_any(&self) -> &dyn Any {
         self
     }
 }
