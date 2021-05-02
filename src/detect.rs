@@ -65,7 +65,13 @@ impl Detector {
                     filesize,
                     entry_point: elf.get_entry_point(),
                 },
-                compilation: Box::new(ElfCompilation::default()),
+                compilation: Box::new(ElfCompilation {
+                    runtime: elf.get_runtime(),
+                    //linker: elf.get_linker(),
+                    //glibc: elf.glibc_version(),
+                    static_comp: elf.is_static(),
+                    stripped: elf.is_stripped(),
+                }),
                 mitigations: Box::new(ElfHarden {
                     exec_stack: elf.exec_stack(),
                     pie: elf.aslr(),
