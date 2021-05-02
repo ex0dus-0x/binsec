@@ -2,7 +2,6 @@
 
 [![Actions][actions-badge]][actions-url]
 [![crates.io version][crates-binsec-badge]][crates-binsec]
-[![Docs][docs-badge]][docs.rs]
 
 [actions-badge]: https://github.com/ex0dus-0x/binsec/workflows/CI/badge.svg?branch=master
 [actions-url]: https://github.com/ex0dus-0x/binsec/actions
