@@ -13,7 +13,8 @@
 Swiss Army Knife for Binary (In)security
 
 __binsec__ is a minimal static analysis utility for detecting security capabilities in ELF/PE/Mach-O executables. It's useful
-for reverse engineers and vulnerability researchers to gain quick insight into binary targets, build fast detection pipelines, and improve overall binary analysis.
+for reverse engineers and vulnerability researchers to gain quick and deeper insights into binary artifacts, 
+build fast detection pipelines, and improve overall binary analysis.
 
 ## Features
 
@@ -25,10 +26,10 @@ for reverse engineers and vulnerability researchers to gain quick insight into b
 
 The project currently supports static detection for a variety of executable checks:
 
-* __Compilation Features__ - insights about how the executable was compiled, and runtimes used in that process
-* __Exploit Mitigations__ - OS-supported binary hardening features used to limit exploits
-* __Dynamic Instrumentation__ - detects any known instrumentation frameworks used for dynamic analysis or debugging
-* __Anti-Analysis (WIP)__ - noticeable anti-analysis checks employed to stop reverse engineering
+* __Compilation Features__ - insights about how the executable was compiled, and runtimes used in that process.
+* __Exploit Mitigations__ - OS-supported binary hardening features used to limit exploitation and priviledge escalation.
+* __Dynamic Instrumentation__ - detects any known instrumentation frameworks used for dynamic analysis and/or profiling.
+* __Anti-Analysis (WIP)__ - noticeable anti-analysis checks employed to mitigate reverse engineering.
 
 ## Usage
 
@@ -38,11 +39,21 @@ Install `binsec` as a command line application as so:
 $ cargo install binsec
 ```
 
-Given any binary executable you want to conduct initial analysis, simply pass in as a positional
-argument:
+Using the application is meant to be very simple. Given any binary executable you want to conduct initial analysis, 
+simply pass it in as a positional argument:
 
 ```
-$ binsec ./suspicious
+$ binsec -- ./suspicious
+```
+
+`binsec` output can also be serialized into JSON:
+
+```
+# print to stdout
+$ binsec --json - -- ./suspicious
+
+# print to path
+$ binsec --json report.json -- ./suspicious
 ```
 
 ## Contributing

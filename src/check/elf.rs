@@ -31,19 +31,18 @@ use std::any::Any;
 #[derive(serde::Serialize, serde::Deserialize, ToMap, Default, Clone)]
 pub struct ElfCompilation {
     #[rename(name = "Compilation Runtime")]
-    runtime: String,
+    pub runtime: String,
 
-    #[rename(name = "Linker Path")]
-    linker: String,
+    //#[rename(name = "Linker Path")]
+    //linker: String,
 
-    #[rename(name = "Glibc Version")]
-    glibc: String,
-
+    //#[rename(name = "Glibc Version")]
+    //glibc: String,
     #[rename(name = "Statically Compiled?")]
-    static_comp: bool,
+    pub static_comp: bool,
 
     #[rename(name = "Stripped Binary?")]
-    stripped: bool,
+    pub stripped: bool,
 }
 
 #[typetag::serde]
@@ -105,6 +104,9 @@ impl Analyze for Elf<'_> {
 pub trait ElfChecks {
     // compilation
     fn is_static(&self) -> bool;
+    fn is_stripped(&self) -> bool;
+    fn get_runtime(&self) -> String;
+    //fn glibc_version(&self) -> String;
 
     // exploit mitigations
     fn exec_stack(&self) -> bool;
@@ -118,6 +120,24 @@ impl ElfChecks for Elf<'_> {
             .program_headers
             .iter()
             .any(|ph| program_header::pt_to_str(ph.p_type) == "PT_INTERP")
+    }
+
+    fn is_stripped(&self) -> bool {
+        self.syms.is_empty()
+    }
+
+    fn get_runtime(&self) -> String {
+        /*
+        for sym in self.syms.iter() {
+            let symbol: &str = self.strtab.get(sym.st_name).unwrap();
+            if symbol.starts_with("__rust") {
+                return String::from("Rust");
+            } else if symbol.starts_with("runtime.go") {
+                return String::from("Golang");
+            }
+        }
+        */
+        String::from("N/A")
     }
 
     fn exec_stack(&self) -> bool {
