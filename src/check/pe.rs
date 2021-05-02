@@ -1,99 +1,90 @@
-//! Defines the `PE` security mitigation checker. Consumes an
-//! PE binary, parses it, and checks for the following features:
+//! ### PE-Specific Compilation Checks:
+//!
+//! * Compiler Runtime
+//!
+//! ### Exploit Mitigations:
 //!
 //! * Data Execution Prevention
 //! * Code Integrity
 //! * Control Flow Guard
-
 use goblin::pe::PE;
 
+use structmap::value::Value;
+use structmap::{GenericMap, StringMap, ToMap};
+use structmap_derive::ToMap;
+
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 
-use crate::check::{Checker, FeatureCheck};
-use crate::format::{BinTable, FeatureMap};
+use crate::check::{Analyze, Detection};
 
-use std::boxed::Box;
+use std::any::Any;
 
-/// struct defining parsed info given a PE binary format
-#[derive(Deserialize, Serialize, Default)]
-pub struct PeInfo {
-    pub machine: u16,
-    pub num_sections: u16,
-    pub timestamp: u32,
+#[derive(Serialize, Deserialize, ToMap, Default, Clone)]
+pub struct PeCompilation {
+    #[rename(name = "Compilation Runtime")]
+    runtime: String,
+    // TODO
 }
 
 #[typetag::serde]
-impl FeatureCheck for PeInfo {
-    fn output(&self) -> String {
-        let mut features: FeatureMap = FeatureMap::new();
-        features.insert("Machine", json!(self.machine));
-        features.insert("Number of Sections", json!(self.num_sections));
-        features.insert("Timestamp", json!(self.timestamp));
-        BinTable::parse("Basic Information", features)
+impl Detection for PeCompilation {
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
-/// struct defining security features parsed from PE, and
+/// Struct defining security features parsed from PE, and
 /// derives serde de/serialize traits for structured output.
-#[derive(Deserialize, Serialize)]
-pub struct PeChecker {
+#[derive(Serialize, Deserialize, ToMap, Default, Clone)]
+pub struct PeHarden {
+    #[rename(name = "Data Execution Prevention (DEP)")]
     pub dep: bool,
+
+    #[rename(name = "Control Flow Guard (CFG)")]
     pub cfg: bool,
+
+    #[rename(name = "Code Integrity")]
     pub code_integrity: bool,
 }
 
 #[typetag::serde]
-impl FeatureCheck for PeChecker {
-    fn output(&self) -> String {
-        let mut features: FeatureMap = FeatureMap::new();
-        features.insert("Data Execution Prevention", json!(self.dep));
-        features.insert("Control Flow Guard", json!(self.cfg));
-        features.insert("Code Integrity", json!(self.code_integrity));
-        BinTable::parse("Basic Information", features)
+impl Detection for PeHarden {
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
-impl Checker for PE<'_> {
-    /// parses out basic binary information and stores for consumption and output.
-    fn bin_info(&self) -> Box<dyn FeatureCheck> {
-        Box::new(PeInfo {
-            machine: self.header.coff_header.machine,
-            num_sections: self.header.coff_header.number_of_sections,
-            timestamp: self.header.coff_header.time_date_stamp,
-        })
+impl Analyze for PE<'_> {
+    fn get_architecture(&self) -> String {
+        if self.is_64 {
+            String::from("PE32+")
+        } else {
+            String::from("PE32")
+        }
     }
 
-    /// implements the necesary checks for the security mitigations of the specific file format.
-    fn harden_check(&self) -> Box<dyn FeatureCheck> {
-        // check for DEP aka stack exec protection by checking the DLL characteristics
-        let dep: bool = match self.header.optional_header {
+    fn get_entry_point(&self) -> String {
+        format!("{}", self.entry)
+    }
+
+    fn symbol_match(&self, cb: fn(&str) -> bool) -> bool {
+        self.imports.iter().any(|import| cb(&import.name))
+    }
+}
+
+/// Custom trait implemented to support PE-specific static checks that can't be handled by
+/// using exposed methods through the `Analyze` trait.
+pub trait PeChecks {
+    fn parse_opt_header(&self, magic: u16) -> bool;
+}
+
+impl PeChecks for PE<'_> {
+    fn parse_opt_header(&self, magic: u16) -> bool {
+        match self.header.optional_header {
             Some(optional_header) => {
-                optional_header.windows_fields.dll_characteristics & 0x0100 == 0
+                optional_header.windows_fields.dll_characteristics & magic == 0
             }
             None => false,
-        };
-
-        // Check for control flow guard
-        let cfg: bool = match self.header.optional_header {
-            Some(optional_header) => {
-                optional_header.windows_fields.dll_characteristics & 0x4000 == 0
-            }
-            None => false,
-        };
-
-        // Code integrity enabled
-        let code_integrity: bool = match self.header.optional_header {
-            Some(optional_header) => {
-                optional_header.windows_fields.dll_characteristics & 0x0080 == 0
-            }
-            None => false,
-        };
-
-        Box::new(PeChecker {
-            dep,
-            cfg,
-            code_integrity,
-        })
+        }
     }
 }

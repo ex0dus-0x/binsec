@@ -1,51 +1,39 @@
-//! Defines the error type used throughout both the library crate
-//! and the main command-line application when encountering exceptions.
-
+//! Custom error type for all errors types that binsec might encounter
 use std::error::Error;
 use std::fmt::{self, Display};
 
-// type alias for a Result that encapsulates a BinError
 pub type BinResult<R> = Result<R, BinError>;
 
-/// Defines the error variants that can be encountered when executing.
 #[derive(Debug)]
-pub enum ErrorKind {
-    ParseError,
-    BinaryError,
-    RuleEngineError,
-    KernelCheckError,
-    FileError,
-    DumpError,
-}
+pub struct BinError(String);
 
-/// Defines the main error type used for any exception that occurs.
-#[derive(Debug)]
-pub struct BinError {
-    pub kind: ErrorKind,
-    pub msg: String,
+impl BinError {
+    pub fn new(msg: &str) -> Self {
+        Self(msg.to_string())
+    }
 }
 
 impl Display for BinError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        write!(f, "\"{:?}: {}\"", self.kind, self.msg)
+        write!(f, "\"{}\"", self.0)
     }
 }
 
 impl From<std::io::Error> for BinError {
     fn from(error: std::io::Error) -> Self {
-        Self {
-            kind: ErrorKind::FileError,
-            msg: error.to_string(),
-        }
+        Self(error.to_string())
     }
 }
 
 impl From<goblin::error::Error> for BinError {
     fn from(error: goblin::error::Error) -> Self {
-        Self {
-            kind: ErrorKind::BinaryError,
-            msg: error.to_string(),
-        }
+        Self(error.to_string())
+    }
+}
+
+impl From<serde_json::Error> for BinError {
+    fn from(error: serde_json::Error) -> Self {
+        Self(error.to_string())
     }
 }
 

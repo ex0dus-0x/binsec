@@ -1,202 +1,156 @@
-//! Defines the `Elf` security mitigation detector. Consumes an
-//! ELF binary, parses it, and checks for the following features:
+//! ### ELF-Specific Compilation Checks:
+//!
+//! * Compiler Runtime
+//! * Linker Path
+//! * Glibc Version
+//! * Static Compilation
+//! * Stripped Executable
+//!
+//! ### Exploit Mitigations:
 //!
 //! * NX (Non-eXecutable bit) stack
 //! * Stack Canaries
 //! * FORTIFY_SOURCE
 //! * Position-Independent Executable / ASLR
 //! * Full/Partial RELRO
-//! * Runpath
 //! * Address Sanitizer
 //! * Undefined Behavior Sanitizer
 
-use goblin::elf::dynamic::{tag_to_str, Dyn, DT_RUNPATH};
+use goblin::elf::dynamic::{tag_to_str, Dyn};
 use goblin::elf::{header, program_header, Elf, ProgramHeader};
 
-use serde::{Deserialize, Serialize};
-use serde_json::json;
+use structmap::value::Value;
+use structmap::{GenericMap, StringMap, ToMap};
+use structmap_derive::ToMap;
 
-use crate::check::{Checker, FeatureCheck};
-use crate::format::{BinTable, FeatureMap};
+use crate::check::{Analyze, Detection};
 
-use std::boxed::Box;
+use std::any::Any;
 
-/// defines basic information parsed out from an ELF binary
-#[derive(Deserialize, Serialize, Default)]
-pub struct ElfInfo {
-    pub machine: String,
-    pub file_class: String,
-    pub bin_type: String,
-    pub entry_point: u64,
+/// Compilation-specific checks to look for in the executable
+#[derive(serde::Serialize, serde::Deserialize, ToMap, Default, Clone)]
+pub struct ElfCompilation {
+    #[rename(name = "Compilation Runtime")]
+    pub runtime: String,
+
+    //#[rename(name = "Linker Path")]
+    //linker: String,
+
+    //#[rename(name = "Glibc Version")]
+    //glibc: String,
+    #[rename(name = "Statically Compiled?")]
+    pub static_comp: bool,
+
+    #[rename(name = "Stripped Binary?")]
+    pub stripped: bool,
 }
 
-// extend with trait to enable generic return in Checker trait implementation
 #[typetag::serde]
-impl FeatureCheck for ElfInfo {
-    /// converts the checked security mitigations into an associative container for output
-    /// consumption with a specific output format.
-    fn output(&self) -> String {
-        let mut features: FeatureMap = FeatureMap::new();
-        features.insert("Architecture", json!(self.machine));
-        features.insert("File Class", json!(self.file_class));
-        features.insert("Binary Type", json!(self.bin_type));
-        features.insert("Entry Point Address", json!(self.entry_point));
-        BinTable::parse("Basic Information", features)
+impl Detection for ElfCompilation {
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
-/// specifies type of relocation read-only, which defines how dynamic relocations
-/// are resolved as a security feature against GOT/PLT attacks.
-#[derive(Deserialize, Serialize)]
-pub enum Relro {
-    FullRelro,
-    PartialRelro,
-    NoRelro,
-}
-
-impl ToString for Relro {
-    fn to_string(&self) -> String {
-        match self {
-            Relro::FullRelro => "FULL".to_string(),
-            Relro::PartialRelro => "PARTIAL".to_string(),
-            Relro::NoRelro => "NONE".to_string(),
-        }
-    }
-}
-
-/// encapsulates an ELF object from libgoblin, in order to parse it and dissect out the necessary
+/// Encapsulates an ELF object from libgoblin, in order to parse it and dissect out the necessary
 /// security mitigation features.
-#[derive(Deserialize, Serialize)]
-struct ElfChecker {
-    // Executable stack
+#[derive(serde::Serialize, serde::Deserialize, ToMap, Default, Clone)]
+pub struct ElfHarden {
+    #[rename(name = "Executable Stack (NX Bit)")]
     pub exec_stack: bool,
 
-    // Use of stack canary
-    pub stack_canary: bool,
-
-    // Position Independent Executable
+    #[rename(name = "Position Independent Executable / ASLR")]
     pub pie: bool,
 
-    // Read-Only Relocatable
-    pub relro: Relro,
+    #[rename(name = "Read-Only Relocatable")]
+    pub relro: String,
 
-    // FORTIFY_SOURCE
+    #[rename(name = "Stack Canary")]
+    pub stack_canary: bool,
+
+    #[rename(name = "FORTIFY_SOURCE")]
     pub fortify_source: bool,
-
-    // Runpath
-    pub runpath: Vec<String>,
-
-    // Address Sanitizer
-    pub asan: bool,
-
-    // Undefined Behavior Sanitizer
-    pub ubsan: bool,
 }
 
-// extend with trait to enable generic return in Checker trait implementation, and provide
-// facilities for dumping out as a genericized FeatureMap
 #[typetag::serde]
-impl FeatureCheck for ElfChecker {
-    /// converts the checked security mitigations into an associative container for output
-    /// consumption with a specific output format
-    fn output(&self) -> String {
-        let mut features: FeatureMap = FeatureMap::new();
-
-        // features will be displayed regardless of presence in binary
-        features.insert("Executable Stack (NX Bit)", json!(self.exec_stack));
-        features.insert("Stack Canary", json!(self.stack_canary));
-        features.insert("FORTIFY_SOURCE", json!(self.fortify_source));
-        features.insert("Position-Independent Executable / ASLR", json!(self.pie));
-        features.insert(
-            "Read-Only Relocatables (RELRO)",
-            json!(self.relro.to_string()),
-        );
-
-        // features added only if found and parsed
-        if !self.runpath.is_empty() {
-            features.insert("Runpath", json!(self.runpath.join(" ")));
-        }
-        if self.asan {
-            features.insert("ASan", json!(self.asan));
-        }
-        if self.ubsan {
-            features.insert("UBSan", json!(self.ubsan));
-        }
-
-        BinTable::parse("Binary Hardening Checks", features)
+impl Detection for ElfHarden {
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
-impl Checker for Elf<'_> {
-    /// parses out basic binary information and stores for consumption and output.
-    fn bin_info(&self) -> Box<dyn FeatureCheck> {
-        let header: header::Header = self.header;
-        let file_class: &str = match header.e_ident[4] {
-            1 => "ELF32",
-            2 => "ELF64",
-            _ => "unknown",
-        };
-
-        Box::new(ElfInfo {
-            machine: header::machine_to_str(header.e_machine).to_string(),
-            file_class: file_class.to_string(),
-            bin_type: header::et_to_str(header.e_type).to_string(),
-            entry_point: header.e_entry,
-        })
+impl Analyze for Elf<'_> {
+    fn get_architecture(&self) -> String {
+        header::machine_to_str(self.header.e_machine).to_string()
     }
 
-    /// implements the necesary checks for the security mitigations for the specific file format.
-    fn harden_check(&self) -> Box<dyn FeatureCheck> {
-        // check for executable stack through program headers
-        let exec_stack: bool = self
+    fn get_entry_point(&self) -> String {
+        format!("{:x}", self.header.e_entry)
+    }
+
+    fn symbol_match(&self, cb: fn(&str) -> bool) -> bool {
+        self.syms
+            .iter()
+            .filter_map(|sym| self.strtab.get(sym.st_name))
+            .any(|name| match name {
+                Ok(e) => cb(e),
+                _ => false,
+            })
+    }
+}
+
+/// Custom trait implemented to support ELF-specific static checks that can't be handled by
+/// using exposed methods through the `Analyze` trait.
+pub trait ElfChecks {
+    // compilation
+    fn is_static(&self) -> bool;
+    fn is_stripped(&self) -> bool;
+    fn get_runtime(&self) -> String;
+    //fn glibc_version(&self) -> String;
+
+    // exploit mitigations
+    fn exec_stack(&self) -> bool;
+    fn aslr(&self) -> bool;
+    fn relro(&self) -> String;
+}
+
+impl ElfChecks for Elf<'_> {
+    fn is_static(&self) -> bool {
+        !self
             .program_headers
             .iter()
-            .any(|ph| program_header::pt_to_str(ph.p_type) == "PT_GNU_STACK" && ph.p_flags == 6);
+            .any(|ph| program_header::pt_to_str(ph.p_type) == "PT_INTERP")
+    }
 
-        // check for stack canary
-        let stack_canary: bool = self
-            .dynsyms
+    fn is_stripped(&self) -> bool {
+        self.syms.is_empty()
+    }
+
+    fn get_runtime(&self) -> String {
+        /*
+        for sym in self.syms.iter() {
+            let symbol: &str = self.strtab.get(sym.st_name).unwrap();
+            if symbol.starts_with("__rust") {
+                return String::from("Rust");
+            } else if symbol.starts_with("runtime.go") {
+                return String::from("Golang");
+            }
+        }
+        */
+        String::from("N/A")
+    }
+
+    fn exec_stack(&self) -> bool {
+        self.program_headers
             .iter()
-            .filter_map(|sym| self.dynstrtab.get(sym.st_name))
-            .any(|name| match name {
-                Ok(e) => (e == "__stack_chk_fail"),
-                _ => false,
-            });
+            .any(|ph| program_header::pt_to_str(ph.p_type) == "PT_GNU_STACK" && ph.p_flags == 6)
+    }
 
-        // check for FORTIFY_SOURCE calls
-        let fortify_source: bool = self
-            .dynsyms
-            .iter()
-            .filter_map(|sym| self.dynstrtab.get(sym.st_name))
-            .any(|name| match name {
-                Ok(e) => e.ends_with("_chk"),
-                _ => false,
-            });
+    fn aslr(&self) -> bool {
+        matches!(self.header.e_type, 3)
+    }
 
-        // check for ASan calls
-        let asan: bool = self
-            .dynsyms
-            .iter()
-            .filter_map(|sym| self.dynstrtab.get(sym.st_name))
-            .any(|name| match name {
-                Ok(e) => e.starts_with("__asan"),
-                _ => false,
-            });
-
-        // check for UBSan calls
-        let ubsan: bool = self
-            .dynsyms
-            .iter()
-            .filter_map(|sym| self.dynstrtab.get(sym.st_name))
-            .any(|name| match name {
-                Ok(e) => e.starts_with("__ubsan"),
-                _ => false,
-            });
-
-        // check for position-independent executable
-        let pie: bool = matches!(self.header.e_type, 3);
-
-        // check for RELRO
+    fn relro(&self) -> String {
         let relro_header: Option<ProgramHeader> = self
             .program_headers
             .iter()
@@ -204,7 +158,7 @@ impl Checker for Elf<'_> {
             .cloned();
 
         // check for full or partial RELRO
-        let mut relro: Relro = Relro::NoRelro;
+        let mut relro: String = String::new();
         match relro_header {
             Some(_rh) => {
                 // check for full/partial RELRO support by checking dynamic section for DT_BIND_NOW flag.
@@ -217,43 +171,16 @@ impl Checker for Elf<'_> {
                         .cloned();
 
                     if dyn_seg.is_some() {
-                        relro = Relro::FullRelro;
+                        relro = "FULL".to_string();
                     } else {
-                        relro = Relro::PartialRelro;
+                        relro = "PARTIAL".to_string();
                     }
                 }
             }
             None => {
-                relro = Relro::NoRelro;
+                relro = "NONE".to_string();
             }
-        };
-
-        // get paths specified in DT_RUNPATH
-        let runpath: Vec<String> = match &self.dynamic {
-            Some(dynamic) => {
-                let mut res_vec: Vec<String> = vec![];
-                for dy in &dynamic.dyns {
-                    if dy.d_tag == DT_RUNPATH {
-                        let val = self.dynstrtab.get(dy.d_val as usize);
-                        if let Some(Ok(name)) = val {
-                            res_vec = name.split(':').map(|x| x.to_string()).collect();
-                        }
-                    }
-                }
-                res_vec
-            }
-            None => vec![],
-        };
-
-        Box::new(ElfChecker {
-            exec_stack,
-            stack_canary,
-            fortify_source,
-            pie,
-            relro,
-            runpath,
-            asan,
-            ubsan,
-        })
+        }
+        relro
     }
 }

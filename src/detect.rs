@@ -2,150 +2,174 @@
 //! inputs. Should be used to detect format and security mitigations for a singular binary.
 #![allow(clippy::match_bool)]
 
-use crate::check::kernel::KernelChecker;
-use crate::check::{Checker, FeatureCheck};
-use crate::errors::{BinError, BinResult, ErrorKind};
-use crate::format::BinFormat;
-use crate::rule_engine::YaraExecutor;
+use crate::check::common::{BasicInfo, Instrumentation};
+use crate::check::elf::{ElfChecks, ElfCompilation, ElfHarden};
+use crate::check::pe::{PeChecks, PeCompilation, PeHarden};
+use crate::check::{Analyze, Detection};
+use crate::errors::{BinError, BinResult};
 
-use goblin::mach::Mach::{Binary, Fat};
+use structmap::value::Value;
+use structmap::{GenericMap, ToMap};
+
+use goblin::mach::Mach;
 use goblin::Object;
 
-use serde::{Deserialize, Serialize};
+use byte_unit::Byte;
+use chrono::prelude::*;
 
-use std::boxed::Box;
-use std::ffi::OsStr;
 use std::fs;
 use std::path::PathBuf;
 
-/// Defines the main interface `Detector` struct, which is instantiated to consume and handle
-/// storing all internally parsed checks in a genericized manner, such that it is much easier
-/// for serialization and output.
-#[derive(Serialize, Deserialize)]
+/// Interfaces static analysis and wraps around parsed information for serialization.
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Detector {
-    /// If set, returns any basic binary information that may be useful for the user
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub bin_info: Option<Box<dyn FeatureCheck>>,
-
-    /// Runs the standard binary hardening checks against the input binary
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub harden_features: Option<Box<dyn FeatureCheck>>,
-
-    /// Performs checks for the host kernel running the binary provided
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub kernel_features: Option<Box<dyn FeatureCheck>>,
-
-    /// Executes a set of YARA-based "enhanced" rules to detect deeper features
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub rule_features: Option<Box<dyn FeatureCheck>>,
+    basic: BasicInfo,
+    compilation: Box<dyn Detection>,
+    mitigations: Box<dyn Detection>,
+    instrumentation: Instrumentation,
+    //anti_analysis: AntiAnalysis,
 }
 
 impl Detector {
-    /// Run the detector given the instantiated configuration options, and stores results for later
-    /// output and consumption.
-    /// TODO: simplify parameters to builder-like pattern
-    pub fn detect(
-        path: PathBuf,
-        basic_info: bool,
-        harden: bool,
-        kernel: bool,
-        rules: bool,
-    ) -> BinResult<Self> {
-        // read from input path and instantiate checker based on binary format
-        let buffer = fs::read(path.as_path())?;
+    pub fn run(binpath: PathBuf) -> BinResult<Self> {
+        let _abspath: PathBuf = fs::canonicalize(&binpath)?;
+        let abspath = _abspath.to_str().unwrap().to_string();
 
-        // is set when parsing each specific binary format type
-        let mut bin_info: Option<Box<dyn FeatureCheck>> = None;
+        // parse out initial metadata used in all binary fomrats
+        let metadata: fs::Metadata = fs::metadata(&binpath)?;
 
-        // do format-specific hardening check if set
-        let harden_features: Option<Box<dyn FeatureCheck>> = match harden {
-            true => match Object::parse(&buffer)? {
-                Object::Elf(elf) => {
-                    bin_info = match basic_info {
-                        true => Some(elf.bin_info()),
-                        false => None,
-                    };
-                    Some(elf.harden_check())
-                }
-                Object::PE(pe) => {
-                    bin_info = match basic_info {
-                        true => Some(pe.bin_info()),
-                        false => None,
-                    };
-                    Some(pe.harden_check())
-                }
-                Object::Mach(_mach) => match _mach {
-                    Binary(mach) => {
-                        bin_info = match basic_info {
-                            true => Some(mach.bin_info()),
-                            false => None,
-                        };
-                        Some(mach.harden_check())
-                    }
-                    Fat(_) => {
-                        return Err(BinError {
-                            kind: ErrorKind::BinaryError,
-                            msg: "does not support multiarch FAT binary containers yet".to_string(),
-                        });
-                    }
-                },
-                _ => {
-                    return Err(BinError {
-                        kind: ErrorKind::BinaryError,
-                        msg: "unsupported filetype for analysis".to_string(),
-                    });
-                }
-            },
-            false => None,
-        };
+        // filesize with readable byte unit
+        let size: u128 = metadata.len() as u128;
+        let byte = Byte::from_bytes(size);
+        let filesize: String = byte.get_appropriate_unit(false).to_string();
 
-        // detect kernel mitigations features if set for the current host's operating system
-        let kernel_features: Option<Box<dyn FeatureCheck>> = match kernel {
-            true => Some(KernelChecker::detect()?),
-            false => None,
-        };
-
-        // run the enhanced set of rules against the binary if set
-        let rule_features: Option<Box<dyn FeatureCheck>> = match rules {
-            true => {
-                // initialize YARA executor
-                let mut rule_exec: YaraExecutor = YaraExecutor::new(path);
-
-                // add rules from crate directory to executor
-                let paths = fs::read_dir("rules")?;
-                for _path in paths {
-                    let path: PathBuf = _path?.path();
-
-                    // only parse YARA files
-                    let path_ext: Option<&str> = path.as_path().extension().and_then(OsStr::to_str);
-                    if path_ext != Some("yara") {
-                        continue;
-                    }
-
-                    // add rule to executor for parsing and bootstrapping a command
-                    rule_exec.add_rule(path)?;
-                }
-
-                // execute them against the target, and store results
-                rule_exec.execute()?;
-
-                // return back the matches for display
-                Some(Box::new(rule_exec.matches))
+        // parse out readable modified timestamp
+        let timestamp: String = match metadata.accessed() {
+            Ok(time) => {
+                let datetime: DateTime<Utc> = time.into();
+                datetime.format("%Y-%m-%d %H:%M:%S").to_string()
             }
-            false => None,
+            Err(_) => String::from("N/A"),
         };
 
-        Ok(Self {
-            bin_info,
-            kernel_features,
-            rule_features,
-            harden_features,
-        })
+        // universal compilation checks: pattern-match for compilers
+
+        let data: Vec<u8> = std::fs::read(&binpath)?;
+        match Object::parse(&data)? {
+            Object::Elf(elf) => Ok(Self {
+                basic: BasicInfo {
+                    abspath,
+                    format: String::from("ELF"),
+                    arch: elf.get_architecture(),
+                    timestamp,
+                    filesize,
+                    entry_point: elf.get_entry_point(),
+                },
+                compilation: Box::new(ElfCompilation {
+                    runtime: elf.get_runtime(),
+                    //linker: elf.get_linker(),
+                    //glibc: elf.glibc_version(),
+                    static_comp: elf.is_static(),
+                    stripped: elf.is_stripped(),
+                }),
+                mitigations: Box::new(ElfHarden {
+                    exec_stack: elf.exec_stack(),
+                    pie: elf.aslr(),
+                    relro: elf.relro(),
+                    stack_canary: elf.symbol_match(|x| x == "__stack_chk_fail"),
+                    fortify_source: elf.symbol_match(|x| x.ends_with("_chk")),
+                }),
+                instrumentation: Instrumentation {
+                    afl: elf.symbol_match(|x| x.starts_with("__afl")),
+                    asan: elf.symbol_match(|x| x.starts_with("__asan")),
+                    ubsan: elf.symbol_match(|x| x.starts_with("__ubsan")),
+                    llvm: elf.symbol_match(|x| x.starts_with("__llvm")),
+                },
+            }),
+            Object::PE(pe) => Ok(Self {
+                basic: BasicInfo {
+                    abspath,
+                    format: String::from("PE/EXE"),
+                    arch: pe.get_architecture(),
+                    timestamp,
+                    filesize,
+                    entry_point: pe.get_entry_point(),
+                },
+                compilation: Box::new(PeCompilation::default()),
+                mitigations: Box::new(PeHarden {
+                    dep: pe.parse_opt_header(0x0100),
+                    cfg: pe.parse_opt_header(0x4000),
+                    code_integrity: pe.parse_opt_header(0x0080),
+                }),
+                instrumentation: Instrumentation {
+                    afl: pe.symbol_match(|x| x.starts_with("__afl")),
+                    asan: pe.symbol_match(|x| x.starts_with("__asan")),
+                    ubsan: pe.symbol_match(|x| x.starts_with("__ubsan")),
+                    llvm: pe.symbol_match(|x| x.starts_with("__llvm")),
+                },
+            }),
+            Object::Mach(Mach::Binary(_mach)) => todo!(),
+            _ => Err(BinError::new("unsupported filetype for analysis")),
+        }
     }
 
-    /// interfaces the routines within the `BinFormat` given and emit a string that can be
-    /// displayed back to the end user.
-    pub fn output(self, format: &BinFormat) -> BinResult<String> {
-        format.dump(self)
+    /// Output all the finalized report collected on the specific executable, writing to
+    /// JSON path if specificed not as `-`.
+    pub fn output(&self, json: Option<&str>) -> serde_json::Result<()> {
+        if let Some(_path) = json {
+            let output: &str = &serde_json::to_string_pretty(self)?;
+            if _path == "-" {
+                println!("{}", output);
+                return Ok(());
+            } else {
+                todo!()
+            }
+        }
+
+        // get basic information first
+        let basic_table: GenericMap = BasicInfo::to_genericmap(self.basic.clone());
+        Detector::table("BASIC", basic_table);
+
+        // get compilation-related information
+        let compilation_table: GenericMap =
+            if let Some(compilation) = self.compilation.as_any().downcast_ref::<ElfCompilation>() {
+                ElfCompilation::to_genericmap(compilation.clone())
+            } else {
+                unreachable!()
+            };
+        Detector::table("COMPILATION", compilation_table);
+
+        // exploit mitigations
+        let mitigations_table: GenericMap =
+            if let Some(mitigations) = self.mitigations.as_any().downcast_ref::<ElfHarden>() {
+                ElfHarden::to_genericmap(mitigations.clone())
+            } else if let Some(mitigations) = self.mitigations.as_any().downcast_ref::<PeHarden>() {
+                PeHarden::to_genericmap(mitigations.clone())
+            } else {
+                unreachable!()
+            };
+        Detector::table("EXPLOIT MITIGATIONS", mitigations_table);
+
+        // get instrumentation
+        let inst_table: GenericMap = Instrumentation::to_genericmap(self.instrumentation.clone());
+        Detector::table("INSTRUMENTATION", inst_table);
+        Ok(())
+    }
+
+    #[inline]
+    pub fn table(name: &str, mapping: GenericMap) {
+        println!("-----------------------------------------------");
+        println!("{}", name);
+        println!("-----------------------------------------------\n");
+        for (name, feature) in mapping {
+            let value: String = match feature {
+                Value::Bool(true) => String::from("\x1b[0;32m✔️\x1b[0m"),
+                Value::Bool(false) => String::from("\x1b[0;31m✖️\x1b[0m"),
+                Value::String(val) => val,
+                _ => unimplemented!(),
+            };
+            println!("{0: <45} {1}", name, value);
+        }
+        println!();
     }
 }

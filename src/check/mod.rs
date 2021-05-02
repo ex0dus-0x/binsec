@@ -1,30 +1,24 @@
-//! Defines the checkers that can be used for their binary formats for their respective
-//! platforms. Also implements the `Checker` trait, which is used to implement the functionality
-//! needed to properly do all security mitigation detections per platform.
-
 pub mod elf;
-pub mod kernel;
-pub mod mach;
+//pub mod mach;
+pub mod common;
 pub mod pe;
 
-use std::boxed::Box;
-
-/// trait to genericize associative structs that store information, which can be de/serialized and
-/// can also dump out an output with all of its attributes.
+/// Blanket trait implemented by structs that all store parsed info from running a static analysis
+/// on top the given executable format.
 #[typetag::serde(tag = "type")]
-pub trait FeatureCheck {
-    /// generate an output for display given a checked set of features stored
-    /// WIP: procedural macro for automatically converting structs to map types
-    fn output(&self) -> String;
+pub trait Detection {
+    fn as_any(&self) -> &dyn std::any::Any;
 }
 
-/// trait that is implemented in order to extend libgoblin's functionality to detect binary
-/// security mitigations either through traditional hardening techniques.
-pub trait Checker {
-    /// parses out and returns basic binary information for more verbose user output.
-    fn bin_info(&self) -> Box<dyn FeatureCheck>;
+/// Defines trait implemented by each supported libgoblin binary format to expose common and
+/// reusable functions for parsing out features and doing static analysis.
+pub trait Analyze {
+    // parses out the architecture as a readable string
+    fn get_architecture(&self) -> String;
 
-    /// defines the function be implemented in order to detect the standard binary hardening
-    /// features usually enforced by the compiler.
-    fn harden_check(&self) -> Box<dyn FeatureCheck>;
+    // parses out the entry point readable hex address
+    fn get_entry_point(&self) -> String;
+
+    // facilitates static pattern match of string in binary sample
+    fn symbol_match(&self, cb: fn(&str) -> bool) -> bool;
 }

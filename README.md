@@ -10,117 +10,56 @@
 [crates-binsec-badge]: https://img.shields.io/crates/v/binsec.svg
 [crates-binsec]: https://crates.io/crates/binsec
 
-[docs-badge]: https://docs.rs/binsec/badge.svg
-[docs.rs]: https://docs.rs/binsec
-
 Swiss Army Knife for Binary (In)security
 
-<img src="https://i.imgur.com/ELu2sgF.png">
-
-## Introduction
-
-__binsec__ is a portable and cross-platform utility for detecting security mitigations across ELF, PE and Mach-O executable formats. While it is able to detect common binary hardening features (ie. no-exec stack, ASLR) across executables, it can also check for more advanced security features, from kernel-based protections to its own set of YARA-based "enhanced" features.
+__binsec__ is a minimal static analysis utility for detecting security capabilities in ELF/PE/Mach-O executables. It's useful
+for reverse engineers and vulnerability researchers to gain quick and deeper insights into binary artifacts, 
+build fast detection pipelines, and improve overall binary analysis.
 
 ## Features
 
-* Robust checks for a wide variety of security mitigations across ELF/PE/Mach-O binaries.
-    * Supports host-based kernel security checks for system insight (WIP: macOS and Windows)
-    * Contains YARA-based enhanced checks for deeper binary insight (ie. compiled language, anti-analysis, etc)
+* Cross-platform, supports robust checks for ELF/PE/Mach-Os while running on any host.
 * Backends [libgoblin](https://github.com/m4b/goblin) for efficient and cross-platform binary parsing.
-* Can generate serializable outputs for JSON and TOML formats for storage/logging consumption.
+* JSON serializable for storage/logging consumption.
 
-## Use Cases
+### Static Analysis Checks
 
-* __Application Assessments__ - use as part of your security tooling when conducting black-box static analysis!
-* __Security infrastructure__ - incorporate as part of your runtime analysis pipeline!
-* __Malware Machine Learning__ - extract features for machine learning models for malware detection!
-* __CTFs and Wargames__ - help find security holes in crackmes for to exploit!
+The project currently supports static detection for a variety of executable checks:
 
-## How to Use
+* __Compilation Features__ - insights about how the executable was compiled, and runtimes used in that process.
+* __Exploit Mitigations__ - OS-supported binary hardening features used to limit exploitation and priviledge escalation.
+* __Dynamic Instrumentation__ - detects any known instrumentation frameworks used for dynamic analysis and/or profiling.
+* __Anti-Analysis (WIP)__ - noticeable anti-analysis checks employed to mitigate reverse engineering.
 
-### Installation
+## Usage
 
-The only necessary external dependency for __binsec__ is `yara` installed through your package manager. __binsec__ is _not_ using Rust bindings to YARA, since it is currently supporting a much older version. This should only be temporary!
-
-Once done, __binsec__ can be installed simply through the `cargo` package manager:
+Install `binsec` as a command line application as so:
 
 ```
 $ cargo install binsec
 ```
 
-You can now use `binsec` as a CLI application, and even interface the crate as a library in your own applications!
-
-### Usage
-
-When running __binsec__ by default, the standard binary `harden` check will be deployed automatically after checking the
-binary format being used:
+Using the application is meant to be very simple. Given any binary executable you want to conduct initial analysis, 
+simply pass it in as a positional argument:
 
 ```
-$ binsec ./out.elf
+$ binsec -- ./suspicious
 ```
 
-You can specify more than one binary, and a detector will be run and display results on each one:
+`binsec` output can also be serialized into JSON:
 
 ```
-$ binsec ./another.mach ./out.elf
+# print to stdout
+$ binsec --json - -- ./suspicious
 
-[*] Name: ./another.mach
-
-...
-
-[*] Name: ./out.elf
-
-...
-```
-
-You can also include `--info`, if you would like some basic verbose details to be included alongside the analysis:
-
-```
-$ binsec --info ./file
-
-                 Basic Information
-
- Architecture                             "X86_64"
-
- Binary Type                                 "DYN"
-
- Entry Point Address                        721600
-
- File Class                                "ELF64"
-```
-
-You can also export this information through serialization, either as a JSON or TOML file. Keep in mind that any checks that are excluded from the terminal-based display will show up serialized:
-
-```
-$ binsec --format=json ./out.elf
-
-[*] Name: out.elf
-
-{
-  "harden_features": {
-    "type": "ElfChecker",
-    "exec_stack": true,
-    "stack_canary": false,
-    "fortify_source": false,
-    "pie": true,
-    "relro": "FullRelro",
-    "runpath": [],
-    "asan": false,
-    "ubsan": false,
-  }
-}
+# print to path
+$ binsec --json report.json -- ./suspicious
 ```
 
 ## Contributing
 
 This is something that is continually being developed! You can contribute by catching issues and bugs
 and submitting them through the [issue tracker](https://github.com/ex0dus-0x/binsec/issues) or making a pull request!
-
-## Similar Projects
-
-* [hardening-check](http://manpages.ubuntu.com/manpages/trusty/man1/hardening-check.1.html)
-* [checksec.rs](https://github.com/etke/checksec.rs)
-* [winchecksec](https://github.com/trailofbits/winchecksec)
 
 ## License
 
