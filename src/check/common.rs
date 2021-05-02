@@ -1,12 +1,12 @@
 //! Defines common checks that are deployed across any binary format.
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 
 use structmap::value::Value;
 use structmap::{GenericMap, StringMap, ToMap};
 use structmap_derive::ToMap;
 
 /// Basic information every binary format will return back for insight.
-#[derive(Serialize, ToMap, Default, Clone)]
+#[derive(Serialize, Deserialize, ToMap, Default, Clone)]
 pub struct BasicInfo {
     #[rename(name = "Absolute Path")]
     pub abspath: String,
@@ -28,7 +28,7 @@ pub struct BasicInfo {
 }
 
 /// Defines instrumentation routines found in the executable, used for every binary format.
-#[derive(Serialize, ToMap, Default, Clone)]
+#[derive(Serialize, Deserialize, ToMap, Default, Clone)]
 pub struct Instrumentation {
     #[rename(name = "AFL")]
     pub afl: bool,
@@ -44,6 +44,6 @@ pub struct Instrumentation {
 }
 
 
-#[derive(Serialize, ToMap, Default, Clone)]
+#[derive(Serialize, Deserialize, ToMap, Default, Clone)]
 pub struct AntiAnalysis {
 }

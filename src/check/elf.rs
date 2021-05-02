@@ -28,7 +28,7 @@ use crate::check::{Analyze, Detection};
 use std::any::Any;
 
 /// Compilation-specific checks to look for in the executable
-#[derive(serde::Serialize, ToMap, Default, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, ToMap, Default, Clone)]
 pub struct ElfCompilation {
     #[rename(name = "Compilation Runtime")]
     runtime: String,
@@ -46,6 +46,7 @@ pub struct ElfCompilation {
     stripped: bool,
 }
 
+#[typetag::serde]
 impl Detection for ElfCompilation {
     fn as_any(&self) -> &dyn Any {
         self
@@ -54,7 +55,7 @@ impl Detection for ElfCompilation {
 
 /// Encapsulates an ELF object from libgoblin, in order to parse it and dissect out the necessary
 /// security mitigation features.
-#[derive(serde::Serialize, ToMap, Default, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, ToMap, Default, Clone)]
 pub struct ElfHarden {
     #[rename(name = "Executable Stack (NX Bit)")]
     pub exec_stack: bool,
@@ -72,6 +73,7 @@ pub struct ElfHarden {
     pub fortify_source: bool,
 }
 
+#[typetag::serde]
 impl Detection for ElfHarden {
     fn as_any(&self) -> &dyn Any {
         self
