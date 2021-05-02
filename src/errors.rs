@@ -31,4 +31,10 @@ impl From<goblin::error::Error> for BinError {
     }
 }
 
+impl From<serde_json::Error> for BinError {
+    fn from(error: serde_json::Error) -> Self {
+        Self(error.to_string())
+    }
+}
+
 impl Error for BinError {}

@@ -13,23 +13,36 @@
 Swiss Army Knife for Binary (In)security
 
 __binsec__ is a minimal static analysis utility for detecting security capabilities in ELF/PE/Mach-O executables. It's useful
-for reverse engineers and vulnerability researchers to gain quick insight into binary targets, build faster detection pipelines, and overall
-improve binary analysis.
+for reverse engineers and vulnerability researchers to gain quick insight into binary targets, build fast detection pipelines, and improve overall binary analysis.
 
 ## Features
 
-The project currently supports static detection for a variety of checks:
+* Cross-platform, supports robust checks for ELF/PE/Mach-Os while running on any host.
+* Backends [libgoblin](https://github.com/m4b/goblin) for efficient and cross-platform binary parsing.
+* JSON serializable for storage/logging consumption.
 
-* Compilation Features
-* Exploit Mitigations
-* Dynamic Instrumentation
-* Anti-Analysis (TODO)
-* Interesting Pattern Matches (TODO)
+### Static Analysis Checks
+
+The project currently supports static detection for a variety of executable checks:
+
+* __Compilation Features__ - insights about how the executable was compiled, and runtimes used in that process
+* __Exploit Mitigations__ - OS-supported binary hardening features used to limit exploits
+* __Dynamic Instrumentation__ - detects any known instrumentation frameworks used for dynamic analysis or debugging
+* __Anti-Analysis (WIP)__ - noticeable anti-analysis checks employed to stop reverse engineering
 
 ## Usage
 
+Install `binsec` as a command line application as so:
+
 ```
 $ cargo install binsec
+```
+
+Given any binary executable you want to conduct initial analysis, simply pass in as a positional
+argument:
+
+```
+$ binsec ./suspicious
 ```
 
 ## Contributing
