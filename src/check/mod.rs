@@ -5,6 +5,7 @@ pub mod common;
 
 /// Blanket trait implemented by structs that all store parsed info from running a static analysis
 /// on top the given executable format.
+#[typetag::serde(tag = "type")]
 pub trait Detection {
     fn as_any(&self) -> &dyn std::any::Any;
 }

@@ -21,7 +21,7 @@ use std::fs;
 use std::path::PathBuf;
 
 /// Interfaces static analysis and wraps around parsed information for serialization.
-//#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Detector {
     basic: BasicInfo,
     compilation: Box<dyn Detection>,
@@ -115,8 +115,17 @@ impl Detector {
         let basic_table: GenericMap = BasicInfo::to_genericmap(self.basic.clone());
         Detector::table("BASIC", basic_table);
 
+        // get compilation-related information
+        let compilation_table: GenericMap =
+            if let Some(compilation) = self.compilation.as_any().downcast_ref::<ElfCompilation>() {
+                ElfCompilation::to_genericmap(compilation.clone())
+            } else {
+                unreachable!()
+            };
+        Detector::table("COMPILATION", compilation_table);
+
         // exploit mitigations
-        let mitigations: GenericMap =
+        let mitigations_table: GenericMap =
             if let Some(mitigations) = self.mitigations.as_any().downcast_ref::<ElfHarden>() {
                 ElfHarden::to_genericmap(mitigations.clone())
             } else if let Some(mitigations) = self.mitigations.as_any().downcast_ref::<PeHarden>() {
@@ -124,7 +133,7 @@ impl Detector {
             } else {
                 unreachable!()
             };
-        Detector::table("EXPLOIT MITIGATIONS", mitigations);
+        Detector::table("EXPLOIT MITIGATIONS", mitigations_table);
 
         // get instrumentation
         let inst_table: GenericMap = Instrumentation::to_genericmap(self.instrumentation.clone());
