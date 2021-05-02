@@ -32,10 +32,10 @@ fn parse_args<'a>() -> ArgMatches<'a> {
         )
         .arg(
             Arg::with_name("json")
-                .help("Output results in JSON format.")
+                .help("Output results in JSON. Use - for stdout.")
                 .short("j")
                 .long("json")
-                .takes_value(false)
+                .takes_value(true)
                 .required(false),
         )
         .get_matches()
@@ -43,8 +43,8 @@ fn parse_args<'a>() -> ArgMatches<'a> {
 
 fn run(args: ArgMatches) -> BinResult<()> {
     let binary: &str = args.value_of("BINARY").unwrap();
-    let _json: bool = args.is_present("json");
+    let json: Option<&str> = args.value_of("json");
     let detector = Detector::run(PathBuf::from(binary))?;
-    detector.output(None);
+    detector.output(json)?;
     Ok(())
 }

@@ -103,12 +103,23 @@ impl Analyze for Elf<'_> {
 /// Custom trait implemented to support ELF-specific static checks that can't be handled by
 /// using exposed methods through the `Analyze` trait.
 pub trait ElfChecks {
+    // compilation
+    fn is_static(&self) -> bool;
+
+    // exploit mitigations
     fn exec_stack(&self) -> bool;
     fn aslr(&self) -> bool;
     fn relro(&self) -> String;
 }
 
 impl ElfChecks for Elf<'_> {
+    fn is_static(&self) -> bool {
+        !self
+            .program_headers
+            .iter()
+            .any(|ph| program_header::pt_to_str(ph.p_type) == "PT_INTERP")
+    }
+
     fn exec_stack(&self) -> bool {
         self.program_headers
             .iter()

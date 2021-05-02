@@ -1,3 +1,9 @@
+//! ### PE-Specific Compilation Checks:
+//!
+//! * Compiler Runtime
+//!
+//! ### Exploit Mitigations:
+//!
 //! * Data Execution Prevention
 //! * Code Integrity
 //! * Control Flow Guard
@@ -7,11 +13,29 @@ use structmap::value::Value;
 use structmap::{GenericMap, StringMap, ToMap};
 use structmap_derive::ToMap;
 
+use serde::{Deserialize, Serialize};
+
 use crate::check::{Analyze, Detection};
+
+use std::any::Any;
+
+#[derive(Serialize, Deserialize, ToMap, Default, Clone)]
+pub struct PeCompilation {
+    #[rename(name = "Compilation Runtime")]
+    runtime: String,
+    // TODO
+}
+
+#[typetag::serde]
+impl Detection for PeCompilation {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
 
 /// Struct defining security features parsed from PE, and
 /// derives serde de/serialize traits for structured output.
-#[derive(serde::Serialize, serde::Deserialize, ToMap, Default, Clone)]
+#[derive(Serialize, Deserialize, ToMap, Default, Clone)]
 pub struct PeHarden {
     #[rename(name = "Data Execution Prevention (DEP)")]
     pub dep: bool,
@@ -25,7 +49,7 @@ pub struct PeHarden {
 
 #[typetag::serde]
 impl Detection for PeHarden {
-    fn as_any(&self) -> &dyn std::any::Any {
+    fn as_any(&self) -> &dyn Any {
         self
     }
 }

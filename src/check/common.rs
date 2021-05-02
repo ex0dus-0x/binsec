@@ -1,5 +1,5 @@
 //! Defines common checks that are deployed across any binary format.
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use structmap::value::Value;
 use structmap::{GenericMap, StringMap, ToMap};
@@ -43,7 +43,6 @@ pub struct Instrumentation {
     pub llvm: bool,
 }
 
-
+/// WIP: checks for common anti-analysis features
 #[derive(Serialize, Deserialize, ToMap, Default, Clone)]
-pub struct AntiAnalysis {
-}
+pub struct AntiAnalysis {}

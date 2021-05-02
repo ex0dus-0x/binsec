@@ -1,7 +1,7 @@
 pub mod elf;
 //pub mod mach;
-pub mod pe;
 pub mod common;
+pub mod pe;
 
 /// Blanket trait implemented by structs that all store parsed info from running a static analysis
 /// on top the given executable format.

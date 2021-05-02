@@ -2,10 +2,10 @@
 //! inputs. Should be used to detect format and security mitigations for a singular binary.
 #![allow(clippy::match_bool)]
 
-use crate::check::elf::{ElfChecks, ElfCompilation, ElfHarden};
-use crate::check::pe::{PeChecks, PeHarden};
-use crate::check::{Analyze, Detection};
 use crate::check::common::{BasicInfo, Instrumentation};
+use crate::check::elf::{ElfChecks, ElfCompilation, ElfHarden};
+use crate::check::pe::{PeChecks, PeCompilation, PeHarden};
+use crate::check::{Analyze, Detection};
 use crate::errors::{BinError, BinResult};
 
 use structmap::value::Value;
@@ -27,7 +27,7 @@ pub struct Detector {
     compilation: Box<dyn Detection>,
     mitigations: Box<dyn Detection>,
     instrumentation: Instrumentation,
-    //matches: Matches,
+    //anti_analysis: AntiAnalysis,
 }
 
 impl Detector {
@@ -49,8 +49,10 @@ impl Detector {
                 let datetime: DateTime<Utc> = time.into();
                 datetime.format("%Y-%m-%d %H:%M:%S").to_string()
             }
-            Err(_) => String::from(""),
+            Err(_) => String::from("N/A"),
         };
+
+        // universal compilation checks: pattern-match for compilers
 
         let data: Vec<u8> = std::fs::read(&binpath)?;
         match Object::parse(&data)? {
@@ -87,7 +89,7 @@ impl Detector {
                     filesize,
                     entry_point: pe.get_entry_point(),
                 },
-                compilation: Box::new(ElfCompilation::default()),
+                compilation: Box::new(PeCompilation::default()),
                 mitigations: Box::new(PeHarden {
                     dep: pe.parse_opt_header(0x0100),
                     cfg: pe.parse_opt_header(0x4000),
@@ -105,10 +107,17 @@ impl Detector {
         }
     }
 
-    /// If JSON path is specified, location will
-    pub fn output(&self, _json: Option<PathBuf>) {
-        if let Some(_path) = _json {
-            todo!()
+    /// Output all the finalized report collected on the specific executable, writing to
+    /// JSON path if specificed not as `-`.
+    pub fn output(&self, json: Option<&str>) -> serde_json::Result<()> {
+        if let Some(_path) = json {
+            let output: &str = &serde_json::to_string_pretty(self)?;
+            if _path == "-" {
+                println!("{}", output);
+                return Ok(());
+            } else {
+                todo!()
+            }
         }
 
         // get basic information first
@@ -138,6 +147,7 @@ impl Detector {
         // get instrumentation
         let inst_table: GenericMap = Instrumentation::to_genericmap(self.instrumentation.clone());
         Detector::table("INSTRUMENTATION", inst_table);
+        Ok(())
     }
 
     #[inline]
