@@ -13,7 +13,8 @@ use serde_json::json;
 
 impl Analyze for PE<'_> {
     fn run_compilation_checks(&self) -> GenericMap {
-        let comp_checks = GenericMap::new();
+        let mut comp_checks = GenericMap::new();
+        comp_checks.insert("Runtime", json!("N/A"));
         comp_checks
     }
 
