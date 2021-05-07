@@ -7,37 +7,16 @@
 //! * Restricted segment
 
 use goblin::mach::MachO;
-
-use structmap::value::Value;
-use structmap::ToMap;
-use structmap_derive::ToMap;
-
-use crate::check::{Analyze, BasicInfo, Detection};
+use crate::check::{Analyze, GenericMap};
+use serde_json::json;
 
 const MH_ALLOW_STACK_EXECUTION: u32 = 0x0002_0000;
 const MH_NO_HEAP_EXECUTION: u32 = 0x0100_0000;
 
-#[derive(serde::Serialize, ToMap, Default)]
-pub struct MachAnalyze {
-    #[rename(name = "Non-Executable Stack")]
-    pub nx_stack: bool,
-
-    #[rename(name = "Non-Executable Heap")]
-    pub nx_heap: bool,
-
-    #[rename(name = "Stack Canary")]
-    pub stack_canary: bool,
-
-    #[rename(name = "__RESTRICT")]
-    pub restrict: bool,
-}
-
-impl Detection for MachAnalyze {}
-
 impl Analyze for MachO<'_> {
 
     /*
-    fn run_harden_checks(&self) -> Box<dyn Detection> {
+    fn run_mitigation_checks(&self) -> GenericMap {
         let nx_stack: bool = matches!(self.header.flags & MH_ALLOW_STACK_EXECUTION, 0);
         let nx_heap: bool = matches!(self.header.flags & MH_NO_HEAP_EXECUTION, 0);
 
@@ -61,13 +40,6 @@ impl Analyze for MachO<'_> {
                 }
             })
             .any(|s| s.to_lowercase() == "__restrict");
-
-        Box::new(MachAnalyze {
-            nx_stack,
-            nx_heap,
-            stack_canary,
-            restrict,
-        })
     }
     */
 }

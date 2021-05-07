@@ -1,24 +1,16 @@
 pub mod elf;
 //pub mod mach;
-pub mod common;
 pub mod pe;
 
-/// Blanket trait implemented by structs that all store parsed info from running a static analysis
-/// on top the given executable format.
-#[typetag::serde(tag = "type")]
-pub trait Detection {
-    fn as_any(&self) -> &dyn std::any::Any;
-}
+use std::collections::BTreeMap;
+
+// represents map used to store tabulated results
+pub type GenericMap = BTreeMap<&'static str, serde_json::Value>;
 
 /// Defines trait implemented by each supported libgoblin binary format to expose common and
 /// reusable functions for parsing out features and doing static analysis.
 pub trait Analyze {
-    // parses out the architecture as a readable string
-    fn get_architecture(&self) -> String;
-
-    // parses out the entry point readable hex address
-    fn get_entry_point(&self) -> String;
-
-    // facilitates static pattern match of string in binary sample
-    fn symbol_match(&self, cb: fn(&str) -> bool) -> bool;
+    fn run_compilation_checks(&self) -> GenericMap;
+    fn run_mitigation_checks(&self) -> GenericMap;
+    fn run_instrumentation_checks(&self) -> Option<GenericMap>;
 }
