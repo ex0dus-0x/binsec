@@ -22,9 +22,5 @@ goblin = "0.4.0"
 byte-unit = "4.0.10"
 chrono = "0.4"
 
-structmap = { git = "https://github.com/ex0dus-0x/structmap" }
-structmap-derive = { git = "https://github.com/ex0dus-0x/structmap", path = "structmap-derive" }
-
-typetag = "0.1"
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
