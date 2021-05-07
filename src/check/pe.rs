@@ -7,84 +7,42 @@
 //! * Data Execution Prevention
 //! * Code Integrity
 //! * Control Flow Guard
+use crate::check::{Analyze, GenericMap};
 use goblin::pe::PE;
 
-use structmap::value::Value;
-use structmap::{GenericMap, StringMap, ToMap};
-use structmap_derive::ToMap;
-
-use serde::{Deserialize, Serialize};
-
-use crate::check::{Analyze, Detection};
-
-use std::any::Any;
-
-#[derive(Serialize, Deserialize, ToMap, Default, Clone)]
-pub struct PeCompilation {
-    #[rename(name = "Compilation Runtime")]
-    runtime: String,
-    // TODO
-}
-
-#[typetag::serde]
-impl Detection for PeCompilation {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-}
-
-/// Struct defining security features parsed from PE, and
-/// derives serde de/serialize traits for structured output.
-#[derive(Serialize, Deserialize, ToMap, Default, Clone)]
-pub struct PeHarden {
-    #[rename(name = "Data Execution Prevention (DEP)")]
-    pub dep: bool,
-
-    #[rename(name = "Control Flow Guard (CFG)")]
-    pub cfg: bool,
-
-    #[rename(name = "Code Integrity")]
-    pub code_integrity: bool,
-}
-
-#[typetag::serde]
-impl Detection for PeHarden {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-}
-
 impl Analyze for PE<'_> {
-    fn get_architecture(&self) -> String {
-        if self.is_64 {
-            String::from("PE32+")
-        } else {
-            String::from("PE32")
-        }
+    fn run_compilation_checks(&self) -> GenericMap {
+        todo!()
     }
 
-    fn get_entry_point(&self) -> String {
-        format!("{}", self.entry)
-    }
+    fn run_mitigation_checks(&self) -> GenericMap {
+        let mut mitigation_checks: GenericMap = GenericMap::new();
 
-    fn symbol_match(&self, cb: fn(&str) -> bool) -> bool {
-        self.imports.iter().any(|import| cb(&import.name))
-    }
-}
+        let mut dep: bool = false;
+        let mut cfg: bool = false;
+        let mut code_integrity: bool = false;
 
-/// Custom trait implemented to support PE-specific static checks that can't be handled by
-/// using exposed methods through the `Analyze` trait.
-pub trait PeChecks {
-    fn parse_opt_header(&self, magic: u16) -> bool;
-}
-
-impl PeChecks for PE<'_> {
-    fn parse_opt_header(&self, magic: u16) -> bool {
         match self.header.optional_header {
             Some(optional_header) => {
-                optional_header.windows_fields.dll_characteristics & magic == 0
+                dep = matches!(
+                    optional_header.windows_fields.dll_characteristics & 0x0100,
+                    0
+                );
+                cfg = matches!(
+                    optional_header.windows_fields.dll_characteristics & 0x4000,
+                    0
+                );
+                code_integrity = matches!(
+                    optional_header.windows_fields.dll_characteristics & 0x0080,
+                    0
+                );
             }
-            None => false,
+            None => {}
         }
+        mitigation_checks
+    }
+
+    fn run_instrumentation_checks(&self) -> Option<GenericMap> {
+        todo!()
     }
 }
