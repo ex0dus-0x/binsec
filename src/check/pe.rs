@@ -13,7 +13,8 @@ use serde_json::json;
 
 impl Analyze for PE<'_> {
     fn run_compilation_checks(&self) -> GenericMap {
-        todo!()
+        let comp_checks = GenericMap::new();
+        comp_checks
     }
 
     fn run_mitigation_checks(&self) -> GenericMap {
@@ -44,6 +45,26 @@ impl Analyze for PE<'_> {
     }
 
     fn run_instrumentation_checks(&self) -> Option<GenericMap> {
-        todo!()
+        let mut inst_map = GenericMap::new();
+
+        // find symbols for stack canary and FORTIFY_SOURCE
+        for _sym in self.imports.iter() {
+            let symbol = &_sym.name;
+            if symbol.starts_with("__afl") {
+                inst_map.insert("AFL Instrumentation", json!(true));
+            } else if symbol.starts_with("__asan") {
+                inst_map.insert("Address Sanitizer", json!(true));
+            } else if symbol.starts_with("__ubsan") {
+                inst_map.insert("Undefined Behavior Sanitizer", json!(true));
+            } else if symbol.starts_with("__llvm") {
+                inst_map.insert("LLVM Code Coverage", json!(true));
+            }
+        }
+
+        if inst_map.is_empty() {
+            None
+        } else {
+            Some(inst_map)
+        }
     }
 }
