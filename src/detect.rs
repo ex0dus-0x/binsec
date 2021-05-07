@@ -27,7 +27,7 @@ pub struct Detector {
 
 impl Detector {
     pub fn run(binpath: PathBuf) -> BinResult<Self> {
-        let mut basic_map: GenericMap = GenericMap::new();
+        let mut basic_map = GenericMap::new();
 
         // get absolute path to executable
         let _abspath: PathBuf = fs::canonicalize(&binpath)?;
