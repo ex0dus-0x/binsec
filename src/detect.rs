@@ -44,14 +44,11 @@ impl Detector {
         basic_map.insert("File Size", json!(filesize));
 
         // parse out readable modified timestamp
-        match metadata.accessed() {
-            Ok(time) => {
-                let datetime: DateTime<Utc> = time.into();
-                let stamp: String = datetime.format("%Y-%m-%d %H:%M:%S").to_string();
-                basic_map.insert("Last Modified", json!(stamp));
-            }
-            Err(_) => {}
-        };
+        if let Ok(time) = metadata.accessed() {
+            let datetime: DateTime<Utc> = time.into();
+            let stamp: String = datetime.format("%Y-%m-%d %H:%M:%S").to_string();
+            basic_map.insert("Last Modified", json!(stamp));
+        }
 
         // universal compilation checks: pattern-match for compilers
 
@@ -69,6 +66,7 @@ impl Detector {
 
                     // get entry point
                     let entry_point: String = format!("0x{:x}", elf.header.e_entry);
+                    basic_map.insert("Entry Point Address", json!(entry_point));
                     basic_map
                 },
                 compilation: elf.run_compilation_checks(),
@@ -85,9 +83,11 @@ impl Detector {
                     } else {
                         String::from("PE32")
                     };
+                    basic_map.insert("Architecture", json!(arch));
 
                     // get entry point
                     let entry_point: String = format!("0x{:x}", pe.entry);
+                    basic_map.insert("Entry Point Address", json!(entry_point));
                     basic_map
                 },
                 compilation: pe.run_compilation_checks(),
