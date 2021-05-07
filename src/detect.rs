@@ -2,38 +2,37 @@
 //! inputs. Should be used to detect format and security mitigations for a singular binary.
 #![allow(clippy::match_bool)]
 
-use crate::check::common::{BasicInfo, Instrumentation};
-use crate::check::elf::{ElfChecks, ElfCompilation, ElfHarden};
-use crate::check::pe::{PeChecks, PeCompilation, PeHarden};
-use crate::check::{Analyze, Detection};
+use crate::check::{Analyze, GenericMap};
 use crate::errors::{BinError, BinResult};
-
-use structmap::value::Value;
-use structmap::{GenericMap, ToMap};
 
 use goblin::mach::Mach;
 use goblin::Object;
 
 use byte_unit::Byte;
 use chrono::prelude::*;
+use serde_json::{json, Value};
 
 use std::fs;
 use std::path::PathBuf;
 
 /// Interfaces static analysis and wraps around parsed information for serialization.
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize)]
 pub struct Detector {
-    basic: BasicInfo,
-    compilation: Box<dyn Detection>,
-    mitigations: Box<dyn Detection>,
-    instrumentation: Instrumentation,
+    basic: GenericMap,
+    compilation: GenericMap,
+    mitigations: GenericMap,
+    instrumentation: Option<GenericMap>,
     //anti_analysis: AntiAnalysis,
 }
 
 impl Detector {
     pub fn run(binpath: PathBuf) -> BinResult<Self> {
+        let mut basic_map = GenericMap::new();
+
+        // get absolute path to executable
         let _abspath: PathBuf = fs::canonicalize(&binpath)?;
         let abspath = _abspath.to_str().unwrap().to_string();
+        basic_map.insert("Absolute Path", json!(abspath));
 
         // parse out initial metadata used in all binary fomrats
         let metadata: fs::Metadata = fs::metadata(&binpath)?;
@@ -42,71 +41,58 @@ impl Detector {
         let size: u128 = metadata.len() as u128;
         let byte = Byte::from_bytes(size);
         let filesize: String = byte.get_appropriate_unit(false).to_string();
+        basic_map.insert("File Size", json!(filesize));
 
         // parse out readable modified timestamp
-        let timestamp: String = match metadata.accessed() {
-            Ok(time) => {
-                let datetime: DateTime<Utc> = time.into();
-                datetime.format("%Y-%m-%d %H:%M:%S").to_string()
-            }
-            Err(_) => String::from("N/A"),
-        };
+        if let Ok(time) = metadata.accessed() {
+            let datetime: DateTime<Utc> = time.into();
+            let stamp: String = datetime.format("%Y-%m-%d %H:%M:%S").to_string();
+            basic_map.insert("Last Modified", json!(stamp));
+        }
 
         // universal compilation checks: pattern-match for compilers
 
         let data: Vec<u8> = std::fs::read(&binpath)?;
         match Object::parse(&data)? {
             Object::Elf(elf) => Ok(Self {
-                basic: BasicInfo {
-                    abspath,
-                    format: String::from("ELF"),
-                    arch: elf.get_architecture(),
-                    timestamp,
-                    filesize,
-                    entry_point: elf.get_entry_point(),
+                basic: {
+                    use goblin::elf::header;
+
+                    basic_map.insert("Binary Format", json!("ELF"));
+
+                    // get architecture
+                    let arch: String = header::machine_to_str(elf.header.e_machine).to_string();
+                    basic_map.insert("Architecture", json!(arch));
+
+                    // get entry point
+                    let entry_point: String = format!("0x{:x}", elf.header.e_entry);
+                    basic_map.insert("Entry Point Address", json!(entry_point));
+                    basic_map
                 },
-                compilation: Box::new(ElfCompilation {
-                    runtime: elf.get_runtime(),
-                    //linker: elf.get_linker(),
-                    //glibc: elf.glibc_version(),
-                    static_comp: elf.is_static(),
-                    stripped: elf.is_stripped(),
-                }),
-                mitigations: Box::new(ElfHarden {
-                    exec_stack: elf.exec_stack(),
-                    pie: elf.aslr(),
-                    relro: elf.relro(),
-                    stack_canary: elf.symbol_match(|x| x == "__stack_chk_fail"),
-                    fortify_source: elf.symbol_match(|x| x.ends_with("_chk")),
-                }),
-                instrumentation: Instrumentation {
-                    afl: elf.symbol_match(|x| x.starts_with("__afl")),
-                    asan: elf.symbol_match(|x| x.starts_with("__asan")),
-                    ubsan: elf.symbol_match(|x| x.starts_with("__ubsan")),
-                    llvm: elf.symbol_match(|x| x.starts_with("__llvm")),
-                },
+                compilation: elf.run_compilation_checks(),
+                mitigations: elf.run_mitigation_checks(),
+                instrumentation: elf.run_instrumentation_checks(),
             }),
             Object::PE(pe) => Ok(Self {
-                basic: BasicInfo {
-                    abspath,
-                    format: String::from("PE/EXE"),
-                    arch: pe.get_architecture(),
-                    timestamp,
-                    filesize,
-                    entry_point: pe.get_entry_point(),
+                basic: {
+                    basic_map.insert("Binary Format", json!("PE/EXE"));
+
+                    // get architecture
+                    let arch: String = if pe.is_64 {
+                        String::from("PE32+")
+                    } else {
+                        String::from("PE32")
+                    };
+                    basic_map.insert("Architecture", json!(arch));
+
+                    // get entry point
+                    let entry_point: String = format!("0x{:x}", pe.entry);
+                    basic_map.insert("Entry Point Address", json!(entry_point));
+                    basic_map
                 },
-                compilation: Box::new(PeCompilation::default()),
-                mitigations: Box::new(PeHarden {
-                    dep: pe.parse_opt_header(0x0100),
-                    cfg: pe.parse_opt_header(0x4000),
-                    code_integrity: pe.parse_opt_header(0x0080),
-                }),
-                instrumentation: Instrumentation {
-                    afl: pe.symbol_match(|x| x.starts_with("__afl")),
-                    asan: pe.symbol_match(|x| x.starts_with("__asan")),
-                    ubsan: pe.symbol_match(|x| x.starts_with("__ubsan")),
-                    llvm: pe.symbol_match(|x| x.starts_with("__llvm")),
-                },
+                compilation: pe.run_compilation_checks(),
+                mitigations: pe.run_mitigation_checks(),
+                instrumentation: pe.run_instrumentation_checks(),
             }),
             Object::Mach(Mach::Binary(_mach)) => todo!(),
             _ => Err(BinError::new("unsupported filetype for analysis")),
@@ -126,33 +112,15 @@ impl Detector {
             }
         }
 
-        // get basic information first
-        let basic_table: GenericMap = BasicInfo::to_genericmap(self.basic.clone());
-        Detector::table("BASIC", basic_table);
+        // will always be printed
+        Detector::table("BASIC", self.basic.clone());
+        Detector::table("COMPILATION", self.compilation.clone());
+        Detector::table("EXPLOIT MITIGATIONS", self.mitigations.clone());
 
-        // get compilation-related information
-        let compilation_table: GenericMap =
-            if let Some(compilation) = self.compilation.as_any().downcast_ref::<ElfCompilation>() {
-                ElfCompilation::to_genericmap(compilation.clone())
-            } else {
-                unreachable!()
-            };
-        Detector::table("COMPILATION", compilation_table);
-
-        // exploit mitigations
-        let mitigations_table: GenericMap =
-            if let Some(mitigations) = self.mitigations.as_any().downcast_ref::<ElfHarden>() {
-                ElfHarden::to_genericmap(mitigations.clone())
-            } else if let Some(mitigations) = self.mitigations.as_any().downcast_ref::<PeHarden>() {
-                PeHarden::to_genericmap(mitigations.clone())
-            } else {
-                unreachable!()
-            };
-        Detector::table("EXPLOIT MITIGATIONS", mitigations_table);
-
-        // get instrumentation
-        let inst_table: GenericMap = Instrumentation::to_genericmap(self.instrumentation.clone());
-        Detector::table("INSTRUMENTATION", inst_table);
+        // get instrumentation if any are set
+        if let Some(instrumentation) = &self.instrumentation {
+            Detector::table("INSTRUMENTATION", instrumentation.clone());
+        }
         Ok(())
     }
 
