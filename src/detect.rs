@@ -50,8 +50,7 @@ impl Detector {
             basic_map.insert("Last Modified", json!(stamp));
         }
 
-        // universal compilation checks: pattern-match for compilers
-
+        // parse executable as format and run checks
         let data: Vec<u8> = std::fs::read(&binpath)?;
         match Object::parse(&data)? {
             Object::Elf(elf) => Ok(Self {

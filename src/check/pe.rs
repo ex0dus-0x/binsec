@@ -1,21 +1,42 @@
 //! ### PE-Specific Compilation Checks:
 //!
+//! * Binary Type
 //! * Compiler Runtime
+//! * Debug Info Stripped
 //!
 //! ### Exploit Mitigations:
 //!
 //! * Data Execution Prevention
 //! * Code Integrity
 //! * Control Flow Guard
+
 use crate::check::{Analyze, GenericMap};
 use goblin::pe::PE;
 use serde_json::json;
 
 impl Analyze for PE<'_> {
     fn run_compilation_checks(&self) -> GenericMap {
-        let mut comp_checks = GenericMap::new();
-        comp_checks.insert("Runtime", json!("N/A"));
-        comp_checks
+        use goblin::pe::characteristic::*;
+
+        let mut comp_map = GenericMap::new();
+
+        // supported: DLL or EXE
+        let bintype: &str = match self.is_lib {
+            true => "DLL",
+            false => "EXE",
+        };
+        comp_map.insert("Binary Type", json!(bintype));
+
+        // debug info stripped
+        let debug_stripped: bool = matches!(
+            self.header.coff_header.characteristics & IMAGE_FILE_DEBUG_STRIPPED,
+            0
+        );
+        comp_map.insert("Debug Stripped", json!(debug_stripped));
+
+        // pattern match for compilers
+        comp_map.insert("Compiler Runtime", json!("N/A"));
+        comp_map
     }
 
     fn run_mitigation_checks(&self) -> GenericMap {
