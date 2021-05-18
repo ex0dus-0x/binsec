@@ -1,10 +1,11 @@
 //! ### ELF-Specific Compilation Checks:
 //!
-//! * Compiler Runtime
-//! * Linker Path
-//! * Glibc Version
+//! * Binary Type
 //! * Static Compilation
 //! * Stripped Executable
+//! * Compiler Runtime (TODO)
+//! * Linker Path
+//! * Minimum glibc Version
 //!
 //! ### Exploit Mitigations:
 //!
@@ -15,22 +16,46 @@
 //! * Full/Partial RELRO
 
 use goblin::elf::dynamic::{tag_to_str, Dyn};
-use goblin::elf::{program_header, Elf};
+use goblin::elf::{header, program_header, Elf};
 use serde_json::json;
 
 use crate::check::{Analyze, GenericMap};
+
+const GLIBC: &str = "GLIBC_2.";
 
 impl Analyze for Elf<'_> {
     fn run_compilation_checks(&self) -> GenericMap {
         let mut comp_map: GenericMap = GenericMap::new();
 
-        // check if PT_INTERP segment exists
+        // supported: shared object (pie exec or .so) or executable
+        comp_map.insert("Binary Type", json!(header::et_to_str(self.header.e_type)));
+
+        // pattern match for compilers
+        //comp_map.insert("Compiler Runtime", json!(true));
+
+        // static executable: check if PT_INTERP segment exists
         let static_exec: bool = !self
             .program_headers
             .iter()
             .any(|ph| program_header::pt_to_str(ph.p_type) == "PT_INTERP");
-
         comp_map.insert("Statically Compiled", json!(static_exec));
+
+        // path to linker
+        if let Some(linker) = self.interpreter {
+            comp_map.insert("Linker Path", json!(linker));
+        }
+
+        // parse minimum glibc version needed
+        let mut glibcs: Vec<f64> = vec![];
+        for sym in self.dynstrtab.to_vec().unwrap() {
+            if sym.starts_with(GLIBC) {
+                let ver_str: &str = sym.strip_prefix(GLIBC).unwrap();
+                let version: f64 = ver_str.parse::<f64>().unwrap();
+                glibcs.push(version);
+            }
+        }
+        let min_ver = glibcs.iter().fold(f64::INFINITY, |a, &b| a.min(b));
+        comp_map.insert("Minimum Libc Version", json!(format!("2.{:?}", min_ver)));
         comp_map.insert("Stripped Executable", json!(self.syms.is_empty()));
         comp_map
     }

@@ -20,6 +20,7 @@ build fast detection pipelines, and improve overall binary analysis.
 * Cross-platform, supports robust checks for ELF/PE/Mach-Os while running on any host.
 * Backends [libgoblin](https://github.com/m4b/goblin) for efficient and cross-platform binary parsing.
 * JSON serializable for storage/logging consumption.
+* Small and ast: final release build is ~2.44Mb, with analysis done in 30ms.
 
 ### Static Analysis Checks
 
