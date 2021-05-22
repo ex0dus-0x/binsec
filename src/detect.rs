@@ -93,7 +93,15 @@ impl Detector {
                 mitigations: pe.run_mitigation_checks(),
                 instrumentation: pe.run_instrumentation_checks(),
             }),
-            Object::Mach(Mach::Binary(_mach)) => todo!(),
+            Object::Mach(Mach::Binary(mach)) => Ok(Self {
+                basic: {
+                    basic_map.insert("Binary Format", json!("Mach-O"));
+                    basic_map
+                },
+                compilation: mach.run_compilation_checks(),
+                mitigations: mach.run_mitigation_checks(),
+                instrumentation: mach.run_instrumentation_checks(),
+            }),
             _ => Err(BinError::new("unsupported filetype for analysis")),
         }
     }
