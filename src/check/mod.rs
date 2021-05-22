@@ -1,5 +1,5 @@
 pub mod elf;
-//pub mod mach;
+pub mod mach;
 pub mod pe;
 
 use std::collections::BTreeMap;
