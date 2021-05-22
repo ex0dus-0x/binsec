@@ -33,7 +33,6 @@ impl Analyze for MachO<'_> {
                 .any(|x| x.name == "__stack_chk_fail" || x.name == "__stack_chk_guard"),
             Err(_) => false,
         };
-
         mitigate_map.insert("Stack Canary", json!(stack_canary));
 
         // check for __RESTRICT section for stopping dynlib injection

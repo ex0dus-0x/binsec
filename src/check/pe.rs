@@ -13,13 +13,12 @@
 //! * Control Flow Guard
 
 use crate::check::{Analyze, GenericMap};
+use goblin::pe::characteristic::*;
 use goblin::pe::PE;
 use serde_json::json;
 
 impl Analyze for PE<'_> {
     fn run_compilation_checks(&self) -> GenericMap {
-        use goblin::pe::characteristic::*;
-
         let mut comp_map = GenericMap::new();
 
         // supported: DLL or EXE
@@ -46,6 +45,7 @@ impl Analyze for PE<'_> {
 
         if let Some(optional_header) = self.header.optional_header {
             let dll_chars: u16 = optional_header.windows_fields.dll_characteristics;
+            let image_chars: u16 = self.header.coff_header.characteristics;
 
             // context independent mitigations
             let dep: bool = matches!(dll_chars & 0x0100, 0);
@@ -61,10 +61,17 @@ impl Analyze for PE<'_> {
             mitigation_checks.insert("Isolation-Aware Execution", json!(!isolation_aware));
 
             // context dependent mitigations: some don't work without existence of other checks
-            let cfg: bool = matches!(dll_chars & 0x4000, 0);
+
+            let aslr: bool = dynamic_base && matches!(image_chars & IMAGE_FILE_RELOCS_STRIPPED, 0);
+            mitigation_checks.insert("Address Space Layout Randomization (ASLR)", json!(aslr));
+
+            let high_entropy: bool = aslr && matches!(dll_chars & 0x0020, 0);
+            mitigation_checks.insert("High Entropy", json!(high_entropy));
+
+            let cfg: bool = aslr && matches!(dll_chars & 0x4000, 0);
             mitigation_checks.insert("Control Flow Guard (CFG)", json!(cfg));
 
-            let code_integrity: bool = matches!(dll_chars & 0x0080, 0);
+            let code_integrity: bool = aslr && matches!(dll_chars & 0x0080, 0);
             mitigation_checks.insert("Code Integrity", json!(code_integrity));
         }
         mitigation_checks
