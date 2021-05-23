@@ -4,9 +4,12 @@
 
 use crate::check::{Analyze, GenericMap};
 use crate::errors::{BinError, BinResult};
+use crate::rules;
 
 use goblin::mach::Mach;
 use goblin::Object;
+
+use yara::Compiler;
 
 use byte_unit::Byte;
 use chrono::prelude::*;
@@ -50,8 +53,22 @@ impl Detector {
             basic_map.insert("Last Modified", json!(stamp));
         }
 
-        // parse executable as format and run checks
+        // read raw binary from path
         let data: Vec<u8> = std::fs::read(&binpath)?;
+
+        // execute YARA rules for instrumentation frameworks
+        let mut compiler = Compiler::new()?;
+        compiler.add_rules_str(rules::INSTRUMENTATION_RULES)?;
+        let rules = compiler.compile_rules()?;
+
+        // parse out matches into genericmap
+        let inst_matches = rules.scan_mem(&data, 5)?;
+        let mut instrumentation = GenericMap::new();
+        inst_matches.iter().map(|res| {
+            instrumentation.insert(res.identifier, json!(true));
+        });
+
+        // parse executable as format and run format-specific mitigation checks
         match Object::parse(&data)? {
             Object::Elf(elf) => Ok(Self {
                 basic: {
@@ -70,7 +87,7 @@ impl Detector {
                 },
                 compilation: elf.run_compilation_checks(),
                 mitigations: elf.run_mitigation_checks(),
-                instrumentation: elf.run_instrumentation_checks(),
+                instrumentation: Some(instrumentation),
             }),
             Object::PE(pe) => Ok(Self {
                 basic: {
