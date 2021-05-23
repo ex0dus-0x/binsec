@@ -1,6 +1,7 @@
 mod check;
 mod detect;
 mod errors;
+mod rules;
 
 use crate::detect::Detector;
 use crate::errors::BinResult;

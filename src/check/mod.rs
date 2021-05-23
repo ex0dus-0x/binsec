@@ -12,5 +12,4 @@ pub type GenericMap = BTreeMap<&'static str, serde_json::Value>;
 pub trait Analyze {
     fn run_compilation_checks(&self) -> GenericMap;
     fn run_mitigation_checks(&self) -> GenericMap;
-    fn run_instrumentation_checks(&self) -> Option<GenericMap>;
 }
