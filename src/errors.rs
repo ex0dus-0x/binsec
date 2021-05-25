@@ -50,5 +50,4 @@ impl From<yara::YaraError> for BinError {
     }
 }
 
-
 impl Error for BinError {}
