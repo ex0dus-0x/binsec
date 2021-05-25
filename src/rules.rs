@@ -6,10 +6,9 @@ pub const INSTRUMENTATION_RULES: &str = r#"
         meta:
             name = "AFL Instrumentation"
         strings:
-            $afl1 = "__afl_manual_init"
-            $afl2 = "__afl_persistent_loop"
+            $afl = /__afl\w+\d+/
         condition:
-            $afl1 or $afl2
+            any of them
     }
 
     rule asan {
@@ -25,7 +24,7 @@ pub const INSTRUMENTATION_RULES: &str = r#"
         meta:
             name = "Undefined Behavior Sanitizer (UBsan)"
         strings:
-            $ubsan = "__ubsan"
+            $ubsan = /__ubsan\w+\d+/
         condition:
             any of them
     }
@@ -34,12 +33,13 @@ pub const INSTRUMENTATION_RULES: &str = r#"
         meta:
             name = "LLVM Code Coverage"
         strings:
-            $llvm = "__llvm"
+            $llvm = /__llvm\w+\d+/
         condition:
-            $llvm
+            any of them
     }
 "#;
 
+/*
 pub const UNIVERSAL_COMPILER_RULES: &str = r#"
     rule rust {
         strings:
@@ -63,3 +63,4 @@ pub const UNIVERSAL_COMPILER_RULES: &str = r#"
             $pyi
     }
 "#;
+*/

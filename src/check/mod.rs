@@ -5,7 +5,7 @@ pub mod pe;
 use std::collections::BTreeMap;
 
 // represents map used to store tabulated results
-pub type GenericMap = BTreeMap<&'static str, serde_json::Value>;
+pub type GenericMap = BTreeMap<String, serde_json::Value>;
 
 /// Defines trait implemented by each supported libgoblin binary format to expose common and
 /// reusable functions for parsing out features and doing static analysis.

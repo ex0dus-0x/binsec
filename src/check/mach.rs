@@ -22,13 +22,16 @@ impl Analyze for MachO<'_> {
         let mut mitigate_map: GenericMap = GenericMap::new();
 
         let nx_stack: bool = matches!(self.header.flags & MH_ALLOW_STACK_EXECUTION, 0);
-        mitigate_map.insert("Executable Stack", json!(nx_stack));
+        mitigate_map.insert("Executable Stack".to_string(), json!(nx_stack));
 
         let nx_heap: bool = matches!(self.header.flags & MH_NO_HEAP_EXECUTION, 0);
-        mitigate_map.insert("Executable Heap", json!(nx_heap));
+        mitigate_map.insert("Executable Heap".to_string(), json!(nx_heap));
 
         let aslr: bool = matches!(self.header.flags & MH_PIE, 0);
-        mitigate_map.insert("Position Independent Executable / ASLR", json!(aslr));
+        mitigate_map.insert(
+            "Position Independent Executable / ASLR".to_string(),
+            json!(aslr),
+        );
 
         // check for stack canary by finding canary functions in imports
         let stack_canary: bool = match self.imports() {
@@ -37,7 +40,7 @@ impl Analyze for MachO<'_> {
                 .any(|x| x.name == "__stack_chk_fail" || x.name == "__stack_chk_guard"),
             Err(_) => false,
         };
-        mitigate_map.insert("Stack Canary", json!(stack_canary));
+        mitigate_map.insert("Stack Canary".to_string(), json!(stack_canary));
 
         // check for __RESTRICT section for stopping dynlib injection
         let restrict: bool = self
@@ -51,7 +54,7 @@ impl Analyze for MachO<'_> {
                 }
             })
             .any(|s| s.to_lowercase() == "__restrict");
-        mitigate_map.insert("__RESTRICT segment", json!(restrict));
+        mitigate_map.insert("__RESTRICT segment".to_string(), json!(restrict));
         mitigate_map
     }
 }
