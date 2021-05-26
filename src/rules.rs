@@ -39,28 +39,39 @@ pub const INSTRUMENTATION_RULES: &str = r#"
     }
 "#;
 
-/*
 pub const UNIVERSAL_COMPILER_RULES: &str = r#"
     rule rust {
+        meta:
+            name = "rustc"
         strings:
             $mangled = /_ZN\w+rustc_demangle\w+\d+/
-        conditions:
+        condition:
             any of them
     }
 
     rule golang {
+        meta:
+            name = "go"
         strings:
             $a = "runtime.decoderune"
             $b = "golang"
-        conditions:
+        condition:
             $a or $b
     }
 
     rule pyinstaller {
         strings:
             $pyi = "pyi_bootstrap"
-        conditions:
+        condition:
             $pyi
     }
 "#;
-*/
+
+pub const ELF_COMPILER_RULES: &str = r#"
+
+"#;
+
+pub const PE_COMPILER_RULES: &str = r#"
+
+
+"#;

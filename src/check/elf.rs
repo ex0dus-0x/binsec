@@ -20,11 +20,13 @@ use goblin::elf::{header, program_header, Elf};
 use serde_json::json;
 
 use crate::check::{Analyze, GenericMap};
+use crate::errors::BinResult;
+use crate::rules;
 
 const GLIBC: &str = "GLIBC_2.";
 
 impl Analyze for Elf<'_> {
-    fn run_compilation_checks(&self) -> GenericMap {
+    fn run_compilation_checks(&self) -> BinResult<GenericMap> {
         let mut comp_map: GenericMap = GenericMap::new();
 
         // supported: shared object (pie exec or .so) or executable
@@ -34,7 +36,8 @@ impl Analyze for Elf<'_> {
         );
 
         // pattern match for compilers
-        //comp_map.insert("Compiler Runtime", json!(true));
+        let runtime = self.detect_compiler_runtime(rules::UNIVERSAL_COMPILER_RULES)?;
+        comp_map.insert("Compiler Runtime".to_string(), json!(runtime));
 
         // static executable: check if PT_INTERP segment exists
         let static_exec: bool = !self
@@ -66,7 +69,7 @@ impl Analyze for Elf<'_> {
             "Stripped Executable".to_string(),
             json!(self.syms.is_empty()),
         );
-        comp_map
+        Ok(comp_map)
     }
 
     fn run_mitigation_checks(&self) -> GenericMap {

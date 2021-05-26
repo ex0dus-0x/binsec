@@ -12,13 +12,16 @@
 //! * Code Integrity
 //! * Control Flow Guard
 
-use crate::check::{Analyze, GenericMap};
 use goblin::pe::characteristic::*;
 use goblin::pe::PE;
 use serde_json::json;
 
+use crate::check::{Analyze, GenericMap};
+use crate::errors::BinResult;
+
+
 impl Analyze for PE<'_> {
-    fn run_compilation_checks(&self) -> GenericMap {
+    fn run_compilation_checks(&self) -> BinResult<GenericMap> {
         let mut comp_map = GenericMap::new();
 
         // supported: DLL or EXE
@@ -37,7 +40,7 @@ impl Analyze for PE<'_> {
 
         // pattern match for compilers
         comp_map.insert("Compiler Runtime".to_string(), json!("N/A"));
-        comp_map
+        Ok(comp_map)
     }
 
     fn run_mitigation_checks(&self) -> GenericMap {
