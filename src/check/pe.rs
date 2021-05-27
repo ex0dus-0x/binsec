@@ -18,10 +18,10 @@ use serde_json::json;
 
 use crate::check::{Analyze, GenericMap};
 use crate::errors::BinResult;
-
+use crate::rules;
 
 impl Analyze for PE<'_> {
-    fn run_compilation_checks(&self) -> BinResult<GenericMap> {
+    fn run_compilation_checks(&self, bytes: &[u8]) -> BinResult<GenericMap> {
         let mut comp_map = GenericMap::new();
 
         // supported: DLL or EXE
@@ -39,7 +39,8 @@ impl Analyze for PE<'_> {
         comp_map.insert("Debug Stripped".to_string(), json!(debug_stripped));
 
         // pattern match for compilers
-        comp_map.insert("Compiler Runtime".to_string(), json!("N/A"));
+        let runtime = self.detect_compiler_runtime(rules::PE_COMPILER_RULES, bytes)?;
+        comp_map.insert("Compiler Runtime".to_string(), json!(runtime));
         Ok(comp_map)
     }
 

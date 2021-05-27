@@ -76,7 +76,7 @@ impl Detector {
                     basic_map.insert("Entry Point Address".to_string(), json!(entry_point));
                     basic_map
                 },
-                compilation: elf.run_compilation_checks()?,
+                compilation: elf.run_compilation_checks(&data)?,
                 mitigations: elf.run_mitigation_checks(),
                 instrumentation,
             }),
@@ -97,7 +97,7 @@ impl Detector {
                     basic_map.insert("Entry Point Address".to_string(), json!(entry_point));
                     basic_map
                 },
-                compilation: pe.run_compilation_checks()?,
+                compilation: pe.run_compilation_checks(&data)?,
                 mitigations: pe.run_mitigation_checks(),
                 instrumentation,
             }),
@@ -106,7 +106,7 @@ impl Detector {
                     basic_map.insert("Binary Format".to_string(), json!("Mach-O"));
                     basic_map
                 },
-                compilation: mach.run_compilation_checks()?,
+                compilation: mach.run_compilation_checks(&data)?,
                 mitigations: mach.run_mitigation_checks(),
                 instrumentation,
             }),

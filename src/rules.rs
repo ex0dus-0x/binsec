@@ -60,6 +60,8 @@ pub const UNIVERSAL_COMPILER_RULES: &str = r#"
     }
 
     rule pyinstaller {
+        meta:
+            name = "Python / PyInstaller"
         strings:
             $pyi = "pyi_bootstrap"
         condition:
@@ -68,10 +70,23 @@ pub const UNIVERSAL_COMPILER_RULES: &str = r#"
 "#;
 
 pub const ELF_COMPILER_RULES: &str = r#"
-
+    rule gcc {
+        meta:
+            name = "GCC C/C++"
+        strings:
+            $a = "gcc"
+        condition:
+            any of them
+    }
 "#;
 
 pub const PE_COMPILER_RULES: &str = r#"
-
-
+    rule msvc {
+        meta:
+            name = "MSVC C/C++"
+        strings:
+            $a = "msvc"
+        condition:
+            any of them
+    }
 "#;
