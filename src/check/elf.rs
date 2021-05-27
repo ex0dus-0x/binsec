@@ -26,7 +26,7 @@ use crate::rules;
 const GLIBC: &str = "GLIBC_2.";
 
 impl Analyze for Elf<'_> {
-    fn run_compilation_checks(&self) -> BinResult<GenericMap> {
+    fn run_compilation_checks(&self, bytes: &[u8]) -> BinResult<GenericMap> {
         let mut comp_map: GenericMap = GenericMap::new();
 
         // supported: shared object (pie exec or .so) or executable
@@ -36,7 +36,7 @@ impl Analyze for Elf<'_> {
         );
 
         // pattern match for compilers
-        let runtime = self.detect_compiler_runtime(rules::UNIVERSAL_COMPILER_RULES)?;
+        let runtime = self.detect_compiler_runtime(rules::ELF_COMPILER_RULES, bytes)?;
         comp_map.insert("Compiler Runtime".to_string(), json!(runtime));
 
         // static executable: check if PT_INTERP segment exists

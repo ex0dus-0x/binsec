@@ -11,13 +11,12 @@ use serde_json::json;
 use crate::check::{Analyze, GenericMap};
 use crate::errors::BinResult;
 
-
 const MH_PIE: u32 = 0x200000;
 const MH_ALLOW_STACK_EXECUTION: u32 = 0x20000;
 const MH_NO_HEAP_EXECUTION: u32 = 0x1000000;
 
 impl Analyze for MachO<'_> {
-    fn run_compilation_checks(&self) -> BinResult<GenericMap> {
+    fn run_compilation_checks(&self, _bytes: &[u8]) -> BinResult<GenericMap> {
         todo!()
     }
 
