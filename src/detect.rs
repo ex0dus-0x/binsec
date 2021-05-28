@@ -4,9 +4,12 @@
 
 use crate::check::{Analyze, GenericMap};
 use crate::errors::{BinError, BinResult};
+use crate::rules;
 
 use goblin::mach::Mach;
 use goblin::Object;
+
+use yara::Compiler;
 
 use byte_unit::Byte;
 use chrono::prelude::*;
@@ -32,7 +35,7 @@ impl Detector {
         // get absolute path to executable
         let _abspath: PathBuf = fs::canonicalize(&binpath)?;
         let abspath = _abspath.to_str().unwrap().to_string();
-        basic_map.insert("Absolute Path", json!(abspath));
+        basic_map.insert("Absolute Path".to_string(), json!(abspath));
 
         // parse out initial metadata used in all binary fomrats
         let metadata: fs::Metadata = fs::metadata(&binpath)?;
@@ -41,40 +44,45 @@ impl Detector {
         let size: u128 = metadata.len() as u128;
         let byte = Byte::from_bytes(size);
         let filesize: String = byte.get_appropriate_unit(false).to_string();
-        basic_map.insert("File Size", json!(filesize));
+        basic_map.insert("File Size".to_string(), json!(filesize));
 
         // parse out readable modified timestamp
         if let Ok(time) = metadata.accessed() {
             let datetime: DateTime<Utc> = time.into();
             let stamp: String = datetime.format("%Y-%m-%d %H:%M:%S").to_string();
-            basic_map.insert("Last Modified", json!(stamp));
+            basic_map.insert("Last Modified".to_string(), json!(stamp));
         }
 
-        // parse executable as format and run checks
+        // read raw binary from path
         let data: Vec<u8> = std::fs::read(&binpath)?;
+
+        // detect presence of dynamic instrumentation frameworks
+        let instrumentation = Detector::detect_instrumentation(&data)?;
+
+        // parse executable as format and run format-specific mitigation checks
         match Object::parse(&data)? {
             Object::Elf(elf) => Ok(Self {
                 basic: {
                     use goblin::elf::header;
 
-                    basic_map.insert("Binary Format", json!("ELF"));
+                    basic_map.insert("Binary Format".to_string(), json!("ELF"));
 
                     // get architecture
                     let arch: String = header::machine_to_str(elf.header.e_machine).to_string();
-                    basic_map.insert("Architecture", json!(arch));
+                    basic_map.insert("Architecture".to_string(), json!(arch));
 
                     // get entry point
                     let entry_point: String = format!("0x{:x}", elf.header.e_entry);
-                    basic_map.insert("Entry Point Address", json!(entry_point));
+                    basic_map.insert("Entry Point Address".to_string(), json!(entry_point));
                     basic_map
                 },
-                compilation: elf.run_compilation_checks(),
+                compilation: elf.run_compilation_checks(&data)?,
                 mitigations: elf.run_mitigation_checks(),
-                instrumentation: elf.run_instrumentation_checks(),
+                instrumentation,
             }),
             Object::PE(pe) => Ok(Self {
                 basic: {
-                    basic_map.insert("Binary Format", json!("PE/EXE"));
+                    basic_map.insert("Binary Format".to_string(), json!("PE/EXE"));
 
                     // get architecture
                     let arch: String = if pe.is_64 {
@@ -82,27 +90,52 @@ impl Detector {
                     } else {
                         String::from("PE32")
                     };
-                    basic_map.insert("Architecture", json!(arch));
+                    basic_map.insert("Architecture".to_string(), json!(arch));
 
                     // get entry point
                     let entry_point: String = format!("0x{:x}", pe.entry);
-                    basic_map.insert("Entry Point Address", json!(entry_point));
+                    basic_map.insert("Entry Point Address".to_string(), json!(entry_point));
                     basic_map
                 },
-                compilation: pe.run_compilation_checks(),
+                compilation: pe.run_compilation_checks(&data)?,
                 mitigations: pe.run_mitigation_checks(),
-                instrumentation: pe.run_instrumentation_checks(),
+                instrumentation,
             }),
             Object::Mach(Mach::Binary(mach)) => Ok(Self {
                 basic: {
-                    basic_map.insert("Binary Format", json!("Mach-O"));
+                    basic_map.insert("Binary Format".to_string(), json!("Mach-O"));
                     basic_map
                 },
-                compilation: mach.run_compilation_checks(),
+                compilation: mach.run_compilation_checks(&data)?,
                 mitigations: mach.run_mitigation_checks(),
-                instrumentation: mach.run_instrumentation_checks(),
+                instrumentation,
             }),
             _ => Err(BinError::new("unsupported filetype for analysis")),
+        }
+    }
+
+    #[inline]
+    fn detect_instrumentation(data: &[u8]) -> BinResult<Option<GenericMap>> {
+        use yara::MetadataValue;
+
+        // execute YARA rules for instrumentation frameworks
+        let mut compiler = Compiler::new()?;
+        compiler.add_rules_str(rules::INSTRUMENTATION_RULES)?;
+        let rules = compiler.compile_rules()?;
+
+        // parse out matches into genericmap
+        let inst_matches = rules.scan_mem(&data, 5)?;
+        let mut instrumentation = GenericMap::new();
+        for rule in inst_matches.iter() {
+            if let MetadataValue::String(name) = rule.metadatas[0].value {
+                instrumentation.insert(String::from(name), json!(true));
+            }
+        }
+
+        if instrumentation.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(instrumentation))
         }
     }
 

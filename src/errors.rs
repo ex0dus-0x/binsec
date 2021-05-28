@@ -37,4 +37,17 @@ impl From<serde_json::Error> for BinError {
     }
 }
 
+impl From<yara::Error> for BinError {
+    fn from(error: yara::Error) -> Self {
+        Self(error.to_string())
+    }
+}
+
+// not sure why there are two error types
+impl From<yara::YaraError> for BinError {
+    fn from(error: yara::YaraError) -> Self {
+        Self(error.to_string())
+    }
+}
+
 impl Error for BinError {}
