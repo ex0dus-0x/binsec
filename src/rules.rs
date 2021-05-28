@@ -74,18 +74,33 @@ pub const ELF_COMPILER_RULES: &str = r#"
         meta:
             name = "GCC C/C++"
         strings:
-            $a = "gcc"
+            $a = "GCC: ("
         condition:
             any of them
     }
 "#;
 
 pub const PE_COMPILER_RULES: &str = r#"
+    // TODO: test out
+
     rule msvc {
         meta:
             name = "MSVC C/C++"
         strings:
-            $a = "msvc"
+            $0 = "MSVCRT"
+            $1 = "MSVCR90"
+            $2 = "MSVCR80"
+            $3 = "MSVCR71"
+            $4 = "MSVCR70"
+        condition:
+            any of them
+    }
+
+    rule dotnet {
+        meta:
+            name = "Dotnet"
+        strings:
+            $0 = "mscor"
         condition:
             any of them
     }
