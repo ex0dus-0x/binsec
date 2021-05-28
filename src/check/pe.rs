@@ -12,13 +12,16 @@
 //! * Code Integrity
 //! * Control Flow Guard
 
-use crate::check::{Analyze, GenericMap};
 use goblin::pe::characteristic::*;
 use goblin::pe::PE;
 use serde_json::json;
 
+use crate::check::{Analyze, GenericMap};
+use crate::errors::BinResult;
+use crate::rules;
+
 impl Analyze for PE<'_> {
-    fn run_compilation_checks(&self) -> GenericMap {
+    fn run_compilation_checks(&self, bytes: &[u8]) -> BinResult<GenericMap> {
         let mut comp_map = GenericMap::new();
 
         // supported: DLL or EXE
@@ -26,18 +29,19 @@ impl Analyze for PE<'_> {
             true => "DLL",
             false => "EXE",
         };
-        comp_map.insert("Binary Type", json!(bintype));
+        comp_map.insert("Binary Type".to_string(), json!(bintype));
 
         // debug info stripped
         let debug_stripped: bool = matches!(
             self.header.coff_header.characteristics & IMAGE_FILE_DEBUG_STRIPPED,
             0
         );
-        comp_map.insert("Debug Stripped", json!(debug_stripped));
+        comp_map.insert("Debug Stripped".to_string(), json!(debug_stripped));
 
         // pattern match for compilers
-        comp_map.insert("Compiler Runtime", json!("N/A"));
-        comp_map
+        let runtime = self.detect_compiler_runtime(rules::PE_COMPILER_RULES, bytes)?;
+        comp_map.insert("Compiler Runtime".to_string(), json!(runtime));
+        Ok(comp_map)
     }
 
     fn run_mitigation_checks(&self) -> GenericMap {
@@ -49,55 +53,40 @@ impl Analyze for PE<'_> {
 
             // context independent mitigations
             let dep: bool = matches!(dll_chars & 0x0100, 0);
-            mitigation_checks.insert("Data Execution Protection (DEP)", json!(dep));
+            mitigation_checks.insert("Data Execution Protection (DEP)".to_string(), json!(dep));
 
             let dynamic_base: bool = matches!(dll_chars & 0x0040, 0);
-            mitigation_checks.insert("Dynamic Base", json!(dynamic_base));
+            mitigation_checks.insert("Dynamic Base".to_string(), json!(dynamic_base));
 
             let seh: bool = matches!(dll_chars & 0x0400, 0);
-            mitigation_checks.insert("Structured Exception Handling (SEH)", json!(!seh));
+            mitigation_checks.insert(
+                "Structured Exception Handling (SEH)".to_string(),
+                json!(!seh),
+            );
 
             let isolation_aware: bool = matches!(dll_chars & 0x0200, 0);
-            mitigation_checks.insert("Isolation-Aware Execution", json!(!isolation_aware));
+            mitigation_checks.insert(
+                "Isolation-Aware Execution".to_string(),
+                json!(!isolation_aware),
+            );
 
             // context dependent mitigations: some don't work without existence of other checks
 
             let aslr: bool = dynamic_base && matches!(image_chars & IMAGE_FILE_RELOCS_STRIPPED, 0);
-            mitigation_checks.insert("Address Space Layout Randomization (ASLR)", json!(aslr));
+            mitigation_checks.insert(
+                "Address Space Layout Randomization (ASLR)".to_string(),
+                json!(aslr),
+            );
 
             let high_entropy: bool = aslr && matches!(dll_chars & 0x0020, 0);
-            mitigation_checks.insert("High Entropy", json!(high_entropy));
+            mitigation_checks.insert("High Entropy".to_string(), json!(high_entropy));
 
             let cfg: bool = aslr && matches!(dll_chars & 0x4000, 0);
-            mitigation_checks.insert("Control Flow Guard (CFG)", json!(cfg));
+            mitigation_checks.insert("Control Flow Guard (CFG)".to_string(), json!(cfg));
 
             let code_integrity: bool = aslr && matches!(dll_chars & 0x0080, 0);
-            mitigation_checks.insert("Code Integrity", json!(code_integrity));
+            mitigation_checks.insert("Code Integrity".to_string(), json!(code_integrity));
         }
         mitigation_checks
-    }
-
-    fn run_instrumentation_checks(&self) -> Option<GenericMap> {
-        let mut inst_map = GenericMap::new();
-
-        // find symbols for stack canary and FORTIFY_SOURCE
-        for _sym in self.imports.iter() {
-            let symbol = &_sym.name;
-            if symbol.starts_with("__afl") {
-                inst_map.insert("AFL Instrumentation", json!(true));
-            } else if symbol.starts_with("__asan") {
-                inst_map.insert("Address Sanitizer", json!(true));
-            } else if symbol.starts_with("__ubsan") {
-                inst_map.insert("Undefined Behavior Sanitizer", json!(true));
-            } else if symbol.starts_with("__llvm") {
-                inst_map.insert("LLVM Code Coverage", json!(true));
-            }
-        }
-
-        if inst_map.is_empty() {
-            None
-        } else {
-            Some(inst_map)
-        }
     }
 }

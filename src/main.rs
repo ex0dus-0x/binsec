@@ -1,6 +1,7 @@
 mod check;
 mod detect;
 mod errors;
+mod rules;
 
 use crate::detect::Detector;
 use crate::errors::BinResult;
@@ -30,6 +31,16 @@ fn parse_args<'a>() -> ArgMatches<'a> {
                 .takes_value(true)
                 .required(true),
         )
+        /*
+        .arg(
+            Arg::with_name("info")
+                .help("Given a tag, get more information about a specific mitigation.")
+                .short("i")
+                .long("info")
+                .takes_value(true)
+                .required(false),
+        )
+        */
         .arg(
             Arg::with_name("json")
                 .help("Output results in JSON. Use - for stdout.")

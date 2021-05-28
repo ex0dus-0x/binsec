@@ -20,29 +20,35 @@ use goblin::elf::{header, program_header, Elf};
 use serde_json::json;
 
 use crate::check::{Analyze, GenericMap};
+use crate::errors::BinResult;
+use crate::rules;
 
 const GLIBC: &str = "GLIBC_2.";
 
 impl Analyze for Elf<'_> {
-    fn run_compilation_checks(&self) -> GenericMap {
+    fn run_compilation_checks(&self, bytes: &[u8]) -> BinResult<GenericMap> {
         let mut comp_map: GenericMap = GenericMap::new();
 
         // supported: shared object (pie exec or .so) or executable
-        comp_map.insert("Binary Type", json!(header::et_to_str(self.header.e_type)));
+        comp_map.insert(
+            "Binary Type".to_string(),
+            json!(header::et_to_str(self.header.e_type)),
+        );
 
         // pattern match for compilers
-        //comp_map.insert("Compiler Runtime", json!(true));
+        let runtime = self.detect_compiler_runtime(rules::ELF_COMPILER_RULES, bytes)?;
+        comp_map.insert("Compiler Runtime".to_string(), json!(runtime));
 
         // static executable: check if PT_INTERP segment exists
         let static_exec: bool = !self
             .program_headers
             .iter()
             .any(|ph| program_header::pt_to_str(ph.p_type) == "PT_INTERP");
-        comp_map.insert("Statically Compiled", json!(static_exec));
+        comp_map.insert("Statically Compiled".to_string(), json!(static_exec));
 
-        // path to linker
+        // path to linker if dynamic linking enabled
         if let Some(linker) = self.interpreter {
-            comp_map.insert("Linker Path", json!(linker));
+            comp_map.insert("Linker Path".to_string(), json!(linker));
         }
 
         // parse minimum glibc version needed
@@ -55,9 +61,15 @@ impl Analyze for Elf<'_> {
             }
         }
         let min_ver = glibcs.iter().fold(f64::INFINITY, |a, &b| a.min(b));
-        comp_map.insert("Minimum Libc Version", json!(format!("2.{:?}", min_ver)));
-        comp_map.insert("Stripped Executable", json!(self.syms.is_empty()));
-        comp_map
+        comp_map.insert(
+            "Minimum Libc Version".to_string(),
+            json!(format!("2.{:?}", min_ver)),
+        );
+        comp_map.insert(
+            "Stripped Executable".to_string(),
+            json!(self.syms.is_empty()),
+        );
+        Ok(comp_map)
     }
 
     fn run_mitigation_checks(&self) -> GenericMap {
@@ -95,10 +107,10 @@ impl Analyze for Elf<'_> {
                 }
             }
         }
-        mitigate_map.insert("Executable Stack (NX Bit)", json!(nx_bit));
-        mitigate_map.insert("Read-Only Relocatable (RELRO)", json!(relro));
+        mitigate_map.insert("Executable Stack (NX Bit)".to_string(), json!(nx_bit));
+        mitigate_map.insert("Read-Only Relocatable (RELRO)".to_string(), json!(relro));
         mitigate_map.insert(
-            "Position Independent Executable / ASLR",
+            "Position Independent Executable / ASLR".to_string(),
             json!(matches!(self.header.e_type, 3)),
         );
 
@@ -113,34 +125,8 @@ impl Analyze for Elf<'_> {
                 }
             }
         }
-        mitigate_map.insert("Stack Canary", json!(stack_canary));
-        mitigate_map.insert("FORTIFY_SOURCE", json!(fortify_source));
+        mitigate_map.insert("Stack Canary".to_string(), json!(stack_canary));
+        mitigate_map.insert("FORTIFY_SOURCE".to_string(), json!(fortify_source));
         mitigate_map
-    }
-
-    fn run_instrumentation_checks(&self) -> Option<GenericMap> {
-        let mut inst_map = GenericMap::new();
-
-        // find symbols for stack canary and FORTIFY_SOURCE
-        for _sym in self.syms.iter() {
-            let _symbol = self.strtab.get(_sym.st_name);
-            if let Some(Ok(symbol)) = _symbol {
-                if symbol.starts_with("__afl") {
-                    inst_map.insert("AFL Instrumentation", json!(true));
-                } else if symbol.starts_with("__asan") {
-                    inst_map.insert("Address Sanitizer", json!(true));
-                } else if symbol.starts_with("__ubsan") {
-                    inst_map.insert("Undefined Behavior Sanitizer", json!(true));
-                } else if symbol.starts_with("__llvm") {
-                    inst_map.insert("LLVM Code Coverage", json!(true));
-                }
-            }
-        }
-
-        if inst_map.is_empty() {
-            None
-        } else {
-            Some(inst_map)
-        }
     }
 }
