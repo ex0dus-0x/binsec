@@ -22,7 +22,7 @@ goblin = "0.4.0"
 byte-unit = "4.0.10"
 chrono = "0.4"
 
-yara = "0.6.1"
+yara = "0.7.0"
 
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
