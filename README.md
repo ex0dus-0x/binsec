@@ -9,18 +9,16 @@
 [crates-binsec-badge]: https://img.shields.io/crates/v/binsec.svg
 [crates-binsec]: https://crates.io/crates/binsec
 
-Swiss Army Knife for Binary (In)security
+Binary (In)security tool
 
-__binsec__ is a minimal static analysis utility for detecting security capabilities in ELF/PE/Mach-O executables. It's useful
-for reverse engineers and vulnerability researchers to gain quick and deeper insights into binary artifacts, 
-build fast detection pipelines, and improve overall binary analysis.
+__binsec__ is a minimal static analysis utility for detecting security capabilities in ELF/PE/Mach-O executables.
 
 ## Features
 
 * Cross-platform, supports robust checks for ELF/PE/Mach-Os while running on any host.
-* Backends [libgoblin](https://github.com/m4b/goblin) for efficient and cross-platform binary parsing.
-* JSON serializable for storage/logging consumption.
-* Small and ast: final release build is ~2.44Mb, with analysis done in 30ms.
+* Backends [libgoblin](https://github.com/m4b/goblin) for binary parsing
+* JSON serialization
+* Small release builds at ~2.44Mb, with analysis done in 30ms.
 
 ### Static Analysis Checks
 
@@ -29,7 +27,6 @@ The project currently supports static detection for a variety of executable chec
 * __Compilation Features__ - insights about how the executable was compiled, and runtimes used in that process.
 * __Exploit Mitigations__ - OS-supported binary hardening features used to limit exploitation and priviledge escalation.
 * __Dynamic Instrumentation__ - detects any known instrumentation frameworks used for dynamic analysis and/or profiling.
-* __Anti-Analysis (WIP)__ - noticeable anti-analysis checks employed to mitigate reverse engineering.
 
 ## Usage
 

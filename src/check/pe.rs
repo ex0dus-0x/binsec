@@ -21,7 +21,7 @@ use crate::errors::BinResult;
 use crate::rules;
 
 impl Analyze for PE<'_> {
-    fn run_compilation_checks(&self, bytes: &[u8]) -> BinResult<GenericMap> {
+    fn compilation(&self, bytes: &[u8]) -> BinResult<GenericMap> {
         let mut comp_map = GenericMap::new();
 
         // supported: DLL or EXE
@@ -44,7 +44,7 @@ impl Analyze for PE<'_> {
         Ok(comp_map)
     }
 
-    fn run_mitigation_checks(&self) -> GenericMap {
+    fn mitigations(&self) -> GenericMap {
         let mut mitigation_checks: GenericMap = GenericMap::new();
 
         if let Some(optional_header) = self.header.optional_header {
@@ -88,5 +88,9 @@ impl Analyze for PE<'_> {
             mitigation_checks.insert("Code Integrity".to_string(), json!(code_integrity));
         }
         mitigation_checks
+    }
+
+    fn instrumentation(&self) -> Option<GenericMap> {
+        unimplemented!();
     }
 }

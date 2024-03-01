@@ -9,8 +9,6 @@ use crate::rules;
 use goblin::mach::Mach;
 use goblin::Object;
 
-use yara::Compiler;
-
 use byte_unit::Byte;
 use chrono::prelude::*;
 use serde_json::{json, Value};
@@ -25,7 +23,6 @@ pub struct Detector {
     compilation: GenericMap,
     mitigations: GenericMap,
     instrumentation: Option<GenericMap>,
-    //anti_analysis: AntiAnalysis,
 }
 
 impl Detector {
@@ -56,9 +53,6 @@ impl Detector {
         // read raw binary from path
         let data: Vec<u8> = std::fs::read(&binpath)?;
 
-        // detect presence of dynamic instrumentation frameworks
-        let instrumentation = Detector::detect_instrumentation(&data)?;
-
         // parse executable as format and run format-specific mitigation checks
         match Object::parse(&data)? {
             Object::Elf(elf) => Ok(Self {
@@ -76,9 +70,9 @@ impl Detector {
                     basic_map.insert("Entry Point Address".to_string(), json!(entry_point));
                     basic_map
                 },
-                compilation: elf.run_compilation_checks(&data)?,
-                mitigations: elf.run_mitigation_checks(),
-                instrumentation,
+                compilation: elf.compilation(&data)?,
+                mitigations: elf.mitigations(),
+                instrumentation: elf.instrumentation(),
             }),
             Object::PE(pe) => Ok(Self {
                 basic: {
@@ -97,45 +91,20 @@ impl Detector {
                     basic_map.insert("Entry Point Address".to_string(), json!(entry_point));
                     basic_map
                 },
-                compilation: pe.run_compilation_checks(&data)?,
-                mitigations: pe.run_mitigation_checks(),
-                instrumentation,
+                compilation: pe.compilation(&data)?,
+                mitigations: pe.mitigations(),
+                instrumentation: None,
             }),
             Object::Mach(Mach::Binary(mach)) => Ok(Self {
                 basic: {
                     basic_map.insert("Binary Format".to_string(), json!("Mach-O"));
                     basic_map
                 },
-                compilation: mach.run_compilation_checks(&data)?,
-                mitigations: mach.run_mitigation_checks(),
-                instrumentation,
+                compilation: mach.compilation(&data)?,
+                mitigations: mach.mitigations(),
+                instrumentation: None,
             }),
             _ => Err(BinError::new("unsupported filetype for analysis")),
-        }
-    }
-
-    #[inline]
-    fn detect_instrumentation(data: &[u8]) -> BinResult<Option<GenericMap>> {
-        use yara::MetadataValue;
-
-        // execute YARA rules for instrumentation frameworks
-        let mut compiler = Compiler::new()?;
-        compiler.add_rules_str(rules::INSTRUMENTATION_RULES)?;
-        let rules = compiler.compile_rules()?;
-
-        // parse out matches into genericmap
-        let inst_matches = rules.scan_mem(&data, 5)?;
-        let mut instrumentation = GenericMap::new();
-        for rule in inst_matches.iter() {
-            if let MetadataValue::String(name) = rule.metadatas[0].value {
-                instrumentation.insert(String::from(name), json!(true));
-            }
-        }
-
-        if instrumentation.is_empty() {
-            Ok(None)
-        } else {
-            Ok(Some(instrumentation))
         }
     }
 

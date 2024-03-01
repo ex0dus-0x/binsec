@@ -26,7 +26,7 @@ use crate::rules;
 const GLIBC: &str = "GLIBC_2.";
 
 impl Analyze for Elf<'_> {
-    fn run_compilation_checks(&self, bytes: &[u8]) -> BinResult<GenericMap> {
+    fn compilation(&self, bytes: &[u8]) -> BinResult<GenericMap> {
         let mut comp_map: GenericMap = GenericMap::new();
 
         // supported: shared object (pie exec or .so) or executable
@@ -72,7 +72,7 @@ impl Analyze for Elf<'_> {
         Ok(comp_map)
     }
 
-    fn run_mitigation_checks(&self) -> GenericMap {
+    fn mitigations(&self) -> GenericMap {
         let mut mitigate_map: GenericMap = GenericMap::new();
 
         // features we are checking for
@@ -120,6 +120,8 @@ impl Analyze for Elf<'_> {
             if let Some(Ok(symbol)) = _symbol {
                 if symbol == "__stack_chk_fail" {
                     stack_canary = true;
+                
+                // TODO: make tighter
                 } else if symbol.ends_with("_chk") {
                     fortify_source = true;
                 }
@@ -128,5 +130,32 @@ impl Analyze for Elf<'_> {
         mitigate_map.insert("Stack Canary".to_string(), json!(stack_canary));
         mitigate_map.insert("FORTIFY_SOURCE".to_string(), json!(fortify_source));
         mitigate_map
+    }
+
+    fn instrumentation(&self) -> Option<GenericMap> {
+        let mut instr_map: GenericMap = GenericMap::new();
+        for _sym in self.syms.iter() {
+            let _symbol = self.strtab.get(_sym.st_name);
+            if let Some(Ok(symbol)) = _symbol {
+
+                // /__ubsan\w+\d+/
+                if symbol.starts_with("__ubsan") {
+                    instr_map.insert("Address Sanitizer (ASAN)".to_string(), json!(true));
+                
+                // /_ZN\w+__asan\w+\d+/
+                } else if symbol.starts_with("__asan") {
+                    instr_map.insert("Undefined Behavior Sanitizer (UBSAN)".to_string(), json!(true));
+                
+                // /__afl\w+\d+/
+                } else if symbol.starts_with("__afl") {
+                    instr_map.insert("AFL Instrumentation".to_string(), json!(true));
+                
+                // /__llvm\w+\d+/
+                } else if symbol.starts_with("__llvm") {
+                    instr_map.insert("LLVM Code Coverage".to_string(), json!(true));
+                }
+            }
+        }
+        unimplemented!();
     }
 }

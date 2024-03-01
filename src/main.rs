@@ -23,7 +23,7 @@ fn parse_args<'a>() -> ArgMatches<'a> {
     App::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"))
         .author("ex0dus <ex0dus at codemuch.tech>")
-        .about("Swiss Army Knife for Binary (In)security")
+        .about("Binary (In)security tool")
         .setting(AppSettings::ArgRequiredElseHelp)
         .arg(
             Arg::with_name("BINARY")
@@ -31,16 +31,6 @@ fn parse_args<'a>() -> ArgMatches<'a> {
                 .takes_value(true)
                 .required(true),
         )
-        /*
-        .arg(
-            Arg::with_name("info")
-                .help("Given a tag, get more information about a specific mitigation.")
-                .short("i")
-                .long("info")
-                .takes_value(true)
-                .required(false),
-        )
-        */
         .arg(
             Arg::with_name("json")
                 .help("Output results in JSON. Use - for stdout.")

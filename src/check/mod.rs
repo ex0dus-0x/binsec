@@ -2,7 +2,7 @@ pub mod elf;
 pub mod mach;
 pub mod pe;
 
-use yara::{Compiler, MetadataValue};
+//use yara::{Compiler, MetadataValue};
 
 use crate::errors::BinResult;
 use crate::rules::UNIVERSAL_COMPILER_RULES;
@@ -14,6 +14,7 @@ pub type GenericMap = std::collections::BTreeMap<String, serde_json::Value>;
 /// reusable functions for parsing out features and doing static analysis.
 pub trait Analyze {
     fn detect_compiler_runtime(&self, os_specific: &str, bytes: &[u8]) -> BinResult<String> {
+        /*
         // initialize with universal compiler runtime rules first, then add os_specific ones
         let mut compiler = Compiler::new()?;
         compiler.add_rules_str(UNIVERSAL_COMPILER_RULES)?;
@@ -30,10 +31,12 @@ pub trait Analyze {
             Ok(name.to_string())
         } else {
             Ok("N/A".to_string())
-        }
+        }*/
+        Ok("N/A".to_string())
     }
 
     /// To be implemented for each specific binary format
-    fn run_compilation_checks(&self, bytes: &[u8]) -> BinResult<GenericMap>;
-    fn run_mitigation_checks(&self) -> GenericMap;
+    fn compilation(&self, bytes: &[u8]) -> BinResult<GenericMap>;
+    fn mitigations(&self) -> GenericMap;
+    fn instrumentation(&self) -> Option<GenericMap>;
 }

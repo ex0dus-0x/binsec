@@ -16,11 +16,11 @@ const MH_ALLOW_STACK_EXECUTION: u32 = 0x20000;
 const MH_NO_HEAP_EXECUTION: u32 = 0x1000000;
 
 impl Analyze for MachO<'_> {
-    fn run_compilation_checks(&self, _bytes: &[u8]) -> BinResult<GenericMap> {
+    fn compilation(&self, _bytes: &[u8]) -> BinResult<GenericMap> {
         todo!()
     }
 
-    fn run_mitigation_checks(&self) -> GenericMap {
+    fn mitigations(&self) -> GenericMap {
         let mut mitigate_map: GenericMap = GenericMap::new();
 
         let nx_stack: bool = matches!(self.header.flags & MH_ALLOW_STACK_EXECUTION, 0);
@@ -58,5 +58,9 @@ impl Analyze for MachO<'_> {
             .any(|s| s.to_lowercase() == "__restrict");
         mitigate_map.insert("__RESTRICT segment".to_string(), json!(restrict));
         mitigate_map
+    }
+
+    fn instrumentation(&self) -> Option<GenericMap> {
+        unimplemented!();
     }
 }
