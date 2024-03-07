@@ -90,7 +90,7 @@ impl Analyze for PE<'_> {
         mitigation_checks
     }
 
-    fn instrumentation(&self) -> Option<GenericMap> {
+    fn instrumentation(&self) -> GenericMap {
         unimplemented!();
     }
 }

@@ -4,7 +4,6 @@
 
 use crate::check::{Analyze, GenericMap};
 use crate::errors::{BinError, BinResult};
-use crate::rules;
 
 use goblin::mach::Mach;
 use goblin::Object;
@@ -22,7 +21,7 @@ pub struct Detector {
     basic: GenericMap,
     compilation: GenericMap,
     mitigations: GenericMap,
-    instrumentation: Option<GenericMap>,
+    instrumentation: GenericMap,
 }
 
 impl Detector {
@@ -93,7 +92,7 @@ impl Detector {
                 },
                 compilation: pe.compilation(&data)?,
                 mitigations: pe.mitigations(),
-                instrumentation: None,
+                instrumentation: pe.instrumentation(),
             }),
             Object::Mach(Mach::Binary(mach)) => Ok(Self {
                 basic: {
@@ -102,7 +101,7 @@ impl Detector {
                 },
                 compilation: mach.compilation(&data)?,
                 mitigations: mach.mitigations(),
-                instrumentation: None,
+                instrumentation: mach.instrumentation(),
             }),
             _ => Err(BinError::new("unsupported filetype for analysis")),
         }
@@ -110,14 +109,15 @@ impl Detector {
 
     /// Output all the finalized report collected on the specific executable, writing to
     /// JSON path if specificed not as `-`.
-    pub fn output(&self, json: Option<&str>) -> serde_json::Result<()> {
+    pub fn output(&self, json: Option<&str>) -> BinResult<()> {
         if let Some(_path) = json {
             let output: &str = &serde_json::to_string_pretty(self)?;
             if _path == "-" {
                 println!("{}", output);
                 return Ok(());
             } else {
-                todo!()
+                fs::write(_path, output)?;
+                return Ok(());
             }
         }
 
@@ -127,8 +127,8 @@ impl Detector {
         Detector::table("EXPLOIT MITIGATIONS", self.mitigations.clone());
 
         // get instrumentation if any are set
-        if let Some(instrumentation) = &self.instrumentation {
-            Detector::table("INSTRUMENTATION", instrumentation.clone());
+        if !self.instrumentation.is_empty() {
+            Detector::table("INSTRUMENTATION", self.instrumentation.clone());
         }
         Ok(())
     }

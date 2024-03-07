@@ -38,5 +38,5 @@ pub trait Analyze {
     /// To be implemented for each specific binary format
     fn compilation(&self, bytes: &[u8]) -> BinResult<GenericMap>;
     fn mitigations(&self) -> GenericMap;
-    fn instrumentation(&self) -> Option<GenericMap>;
+    fn instrumentation(&self) -> GenericMap;
 }

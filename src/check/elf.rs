@@ -116,8 +116,8 @@ impl Analyze for Elf<'_> {
 
         // find symbols for stack canary and FORTIFY_SOURCE
         for _sym in self.syms.iter() {
-            let _symbol = self.strtab.get(_sym.st_name);
-            if let Some(Ok(symbol)) = _symbol {
+            let _symbol = self.strtab.get_at(_sym.st_name);
+            if let Some(symbol) = _symbol {
                 if symbol == "__stack_chk_fail" {
                     stack_canary = true;
                 
@@ -132,19 +132,19 @@ impl Analyze for Elf<'_> {
         mitigate_map
     }
 
-    fn instrumentation(&self) -> Option<GenericMap> {
+    fn instrumentation(&self) -> GenericMap {
         let mut instr_map: GenericMap = GenericMap::new();
         for _sym in self.syms.iter() {
-            let _symbol = self.strtab.get(_sym.st_name);
-            if let Some(Ok(symbol)) = _symbol {
+            let _symbol = self.strtab.get_at(_sym.st_name);
+            if let Some(symbol) = _symbol {
 
                 // /__ubsan\w+\d+/
                 if symbol.starts_with("__ubsan") {
-                    instr_map.insert("Address Sanitizer (ASAN)".to_string(), json!(true));
+                    instr_map.insert("Undefined Behavior Sanitizer (UBSAN)".to_string(), json!(true));
                 
                 // /_ZN\w+__asan\w+\d+/
                 } else if symbol.starts_with("__asan") {
-                    instr_map.insert("Undefined Behavior Sanitizer (UBSAN)".to_string(), json!(true));
+                    instr_map.insert("Address Sanitizer (ASAN)".to_string(), json!(true));
                 
                 // /__afl\w+\d+/
                 } else if symbol.starts_with("__afl") {
@@ -156,6 +156,6 @@ impl Analyze for Elf<'_> {
                 }
             }
         }
-        unimplemented!();
+        instr_map
     }
 }

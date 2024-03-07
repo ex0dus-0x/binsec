@@ -60,7 +60,7 @@ impl Analyze for MachO<'_> {
         mitigate_map
     }
 
-    fn instrumentation(&self) -> Option<GenericMap> {
+    fn instrumentation(&self) -> GenericMap {
         unimplemented!();
     }
 }
